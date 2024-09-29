@@ -1,6 +1,6 @@
 import { ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel, ZMember } from "@devvit/public-api";
 import { APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
-import { compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getYear, interval, isSameMonth, startOfMonth, startOfYear, subYears } from "date-fns";
+import { compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
@@ -23,11 +23,11 @@ async function createYearWikiPage (date: Date, context: TriggerContext) {
     console.log(`Updating statistics for ${getYear(date)}`);
     let wikiContent = `## ${getYear(date)}\n\n`;
 
-    const installDate = await context.redis.get(APP_INSTALL_DATE);
+    const installDateValue = await context.redis.get(APP_INSTALL_DATE);
 
     let firstMonth: Date;
-    if (installDate) {
-        firstMonth = _.max([startOfYear(date), startOfMonth(new Date(installDate))]) ?? startOfYear(date);
+    if (installDateValue) {
+        firstMonth = _.max([startOfYear(date), startOfMonth(new Date(installDateValue))]) ?? startOfYear(date);
     } else {
         firstMonth = startOfYear(date);
     }
@@ -111,6 +111,19 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
 
     const todayString = formatDate(new Date(), "dd");
 
+    let numberOfDaysCovered: number;
+    if (isSameMonth(month, new Date())) {
+        // Month currently in progress.
+        // Are we in the same month as the app install?
+        let firstDay = 1;
+        if (installDateValue && isSameMonth(new Date(installDateValue), month)) {
+            firstDay = getDate(new Date(installDateValue));
+        }
+        numberOfDaysCovered = getDate(new Date()) - firstDay;
+    } else {
+        numberOfDaysCovered = getDaysInMonth(month);
+    }
+
     const postsByDay = (await context.redis.zRange(postCountKey(month), 0, -1)).filter(item => !isSameMonth(month, new Date()) || (isSameMonth(month, new Date()) && item.member !== todayString));
     postsByDay.sort((a, b) => b.score - a.score);
     if (postsByDay.length > 0) {
@@ -121,7 +134,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         wikiPage += "\n";
 
         if (postsByDay.length > 1) {
-            const averagePosts = Math.round(_.mean(postsByDay.map(item => item.score)));
+            const averagePosts = Math.round(_.sum(postsByDay.map(item => item.score)) / numberOfDaysCovered);
             wikiPage += `*Average posts per day*: ${averagePosts.toLocaleString()} ${pluralize("post", averagePosts)}\n\n`;
         }
     }
@@ -136,7 +149,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         wikiPage += "\n";
 
         if (commentsByDay.length > 1) {
-            const averageComments = Math.round(_.mean(commentsByDay.map(item => item.score)));
+            const averageComments = Math.round(_.sum(commentsByDay.map(item => item.score)) / numberOfDaysCovered);
             wikiPage += `*Average comments per day*: ${averageComments.toLocaleString()} ${pluralize("comment", averageComments)}\n\n`;
         }
     } else {
