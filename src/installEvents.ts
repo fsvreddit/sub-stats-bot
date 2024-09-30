@@ -1,9 +1,9 @@
 import { TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
-import { APP_INSTALL_DATE } from "./redisHelper.js";
+import { APP_INSTALL_DATE, CLEANUP_KEY } from "./redisHelper.js";
 import { storeCurrentMonthPostsOnInstall } from "./postCalculations.js";
 import { CLEANUP_CRON, JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR } from "./constants.js";
-import { formatDate, getYear } from "date-fns";
+import { addDays, formatDate, getYear } from "date-fns";
 import { scheduleAdhocCleanup } from "./cleanup.js";
 import { updateWikiPageAtEndOfDay } from "./wikiPages.js";
 import { storeSubscriberCount } from "./subscriberCount.js";
@@ -17,6 +17,8 @@ export async function handleAppInstallEvents (_: AppInstall, context: TriggerCon
 
     // Store upvotes for this month's top 1000 posts
     await storeCurrentMonthPostsOnInstall(context);
+
+    // Create initial wiki page, and send welcome modmail.
     await updateWikiPageAtEndOfDay(undefined, context);
     await sendWelcomeModmail(context);
 }
@@ -32,7 +34,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
         name: JOB_CLEANUP_FILTERED_STORE,
         cron: `${randomMinute} * * * *`, // Every hour.
     });
-    console.log(`Cleanup will run at ${randomMinute} past the hour.`);
+    console.log(`Filtered item cleanup will run at ${randomMinute} past the hour.`);
 
     await context.scheduler.runJob({
         name: JOB_CLEANUP_DELETED_USER,
@@ -60,6 +62,9 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
         name: JOB_UPDATE_WIKI_PAGE_END_YEAR,
         cron: "45 0 1 1 *", // 00:45 on 1st January each year
     });
+
+    const res = await context.redis.zRange(CLEANUP_KEY, 0, addDays(new Date(), 30).getTime(), { by: "score" });
+    console.log(res.length);
 }
 
 async function sendWelcomeModmail (context: TriggerContext) {

@@ -1,8 +1,8 @@
-import { ScheduledJobEvent, Subreddit, TriggerContext, ZMember } from "@devvit/public-api";
+import { JobContext, ScheduledJobEvent, Subreddit, ZMember } from "@devvit/public-api";
 import { SUBS_KEY } from "./redisHelper.js";
 import { addDays, differenceInDays, formatDate, formatDistance, getDate, isMonday, subDays } from "date-fns";
 
-export async function storeSubscriberCount (_: ScheduledJobEvent | undefined, context: TriggerContext) {
+export async function storeSubscriberCount (_: ScheduledJobEvent<undefined> | undefined, context: JobContext) {
     const subreddit = await context.reddit.getCurrentSubreddit();
     await context.redis.zAdd(SUBS_KEY, { member: formatDate(new Date(), `yyyy-MM-dd`), score: subreddit.numberOfSubscribers });
     console.log(`Subscriber count stored. Value: ${subreddit.numberOfSubscribers}`);

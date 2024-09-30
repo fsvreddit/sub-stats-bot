@@ -1,4 +1,4 @@
-import { ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel, ZMember } from "@devvit/public-api";
+import { JobContext, ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel, ZMember } from "@devvit/public-api";
 import { APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
 import { compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -9,16 +9,16 @@ import markdownEscape from "markdown-escape";
 import pluralize from "pluralize";
 import _ from "lodash";
 
-export async function updateWikiPageAtEndOfDay (_: ScheduledJobEvent | undefined, context: TriggerContext) {
+export async function updateWikiPageAtEndOfDay (_: unknown, context: JobContext) {
     await createYearWikiPage(new Date(), context);
     await createSummaryWikiPage(context);
 }
 
-export async function updateWikiPageAtEndOfYear (_: ScheduledJobEvent, context: TriggerContext) {
+export async function updateWikiPageAtEndOfYear (_: ScheduledJobEvent<undefined>, context: JobContext) {
     await createYearWikiPage(subYears(new Date(), 1), context);
 }
 
-async function createYearWikiPage (date: Date, context: TriggerContext) {
+async function createYearWikiPage (date: Date, context: JobContext) {
     const wikiPageName = `sub-stats-bot/${formatDate(date, "yyyy")}`;
     console.log(`Updating statistics for ${getYear(date)}`);
     let wikiContent = `## ${getYear(date)}\n\n`;
@@ -306,7 +306,7 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
     return wikiPage;
 }
 
-export async function createSummaryWikiPage (context: TriggerContext) {
+export async function createSummaryWikiPage (context: JobContext) {
     const summaryPage = "sub-stats-bot";
 
     const installDate = await context.redis.get(APP_INSTALL_DATE);
@@ -430,7 +430,7 @@ export async function createSummaryWikiPage (context: TriggerContext) {
     });
 }
 
-export async function updateWikiPagePermissions (_: ScheduledJobEvent, context: TriggerContext) {
+export async function updateWikiPagePermissions (_: ScheduledJobEvent<undefined>, context: TriggerContext) {
     const currentPermission = await context.redis.get(WIKI_PERMISSION_LEVEL);
     const newPermission = await context.settings.get<boolean>(Setting.RestrictToMods);
     if (newPermission === undefined) {

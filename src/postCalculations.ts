@@ -1,4 +1,4 @@
-import { ScheduledJobEvent, TriggerContext, ZMember } from "@devvit/public-api";
+import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, ZMember } from "@devvit/public-api";
 import { domainCountKey, postTypeCountKey, postVotesKey } from "./redisHelper.js";
 import { addSeconds, getDate, startOfMonth, subDays } from "date-fns";
 import { domainFromUrlString } from "./utility.js";
@@ -8,7 +8,7 @@ import _ from "lodash";
 
 type PostType = "self" | "nsfw" | "spoiler" | "total";
 
-export async function calculatePostVotes (event: ScheduledJobEvent, context: TriggerContext) {
+export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
     console.log("Post Votes: Calculating post votes for previous day.");
     const checkDate = subDays(new Date(), -1);
     const redisKey = postVotesKey(checkDate);

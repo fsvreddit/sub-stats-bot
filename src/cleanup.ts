@@ -1,4 +1,4 @@
-import { ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
+import { JobContext, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
 import { APP_INSTALL_DATE, CLEANUP_KEY, FILTERED_ITEMS_KEY } from "./redisHelper.js";
 import { addDays, addMinutes, eachMonthOfInterval, interval, subMinutes } from "date-fns";
 import { userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -35,7 +35,7 @@ interface UserActive {
     isActive: boolean;
 }
 
-export async function cleanupDeletedAccounts (_: ScheduledJobEvent, context: TriggerContext) {
+export async function cleanupDeletedAccounts (_: ScheduledJobEvent<undefined>, context: JobContext) {
     console.log("Cleanup: Starting cleanup job");
 
     const items = await context.redis.zRange(CLEANUP_KEY, 0, new Date().getTime(), { by: "score" });
@@ -135,7 +135,7 @@ export async function addFilteredItem (thingId: string, context: TriggerContext)
     await context.redis.zAdd(FILTERED_ITEMS_KEY, { member: thingId, score: addDays(new Date(), 2).getTime() });
 }
 
-export async function cleanupFilteredStore (_: ScheduledJobEvent, context: TriggerContext) {
+export async function cleanupFilteredStore (_: ScheduledJobEvent<undefined>, context: JobContext) {
     // Check for items in the filtered store that aren't in the modqueue. These will have been actually removed not filtered.
     const filteredItems = (await context.redis.zRange(FILTERED_ITEMS_KEY, 0, new Date().getTime(), { by: "score" })).map(item => item.member);
     if (filteredItems.length === 0) {
@@ -150,6 +150,7 @@ export async function cleanupFilteredStore (_: ScheduledJobEvent, context: Trigg
 
     const itemsNotActuallyFiltered = filteredItems.filter(item => !modQueue.some(queuedItem => queuedItem.id === item));
     if (itemsNotActuallyFiltered.length > 0) {
-        console.log(`Cleanup: Removed ${itemsNotActuallyFiltered.length} items from the filtered item store.`);
+        const removedCount = await context.redis.zRem(FILTERED_ITEMS_KEY, itemsNotActuallyFiltered);
+        console.log(`Cleanup: Removed ${removedCount} ${pluralize("item", filteredItems.length)} from the filtered item store.`);
     }
 }
