@@ -4,7 +4,7 @@ import { compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYe
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
-import { numberWithSign } from "./utility.js";
+import { getSubredditName, numberWithSign } from "./utility.js";
 import markdownEscape from "markdown-escape";
 import pluralize from "pluralize";
 import _ from "lodash";
@@ -39,8 +39,10 @@ async function createYearWikiPage (date: Date, context: JobContext) {
         wikiContent += await getSummaryForYearToDate(months, context);
     }
 
-    for (const month of months) {
-        wikiContent += await getContentForMonth(month, subreddit, context);
+    const monthContent = await Promise.all(months.map(month => getContentForMonth(month, subreddit, context)));
+
+    for (const content of monthContent) {
+        wikiContent += content;
     }
 
     let existingPage: WikiPage | undefined;
@@ -104,7 +106,10 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         }
     } else {
         const subsAtEnd = await context.redis.zScore(SUBS_KEY, formatDate(lastDayOfMonth, "yyyy-MM-dd"));
-        wikiPage += `Subscribers ${(subsAtEnd ?? 0) >= (subsAtStart ?? 0) ? "increased" : "decreased"} from ${subsAtStart?.toLocaleString() ?? "unknown"} to ${subsAtEnd?.toLocaleString() ?? "unknown"} by end of month.\n\n`;
+        if (subsAtStart && subsAtEnd) {
+            wikiPage += `Subscribers ${subsAtEnd >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} to ${subsAtEnd.toLocaleString()} by end of month.\n\n`;
+        }
+        wikiPage += `Subscribers are now ${subreddit.numberOfSubscribers.toLocaleString()}\n\n`;
     }
 
     wikiPage += "#### Activity\n\n";
@@ -267,6 +272,7 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
         for (const user of top10Posters) {
             wikiPage += `* **${user.score.toLocaleString()} ${pluralize("post", user.score)}** from ${markdownEscape(user.member)}\n`;
         }
+        wikiPage += "\n";
     } else {
         wikiPage += "There were no posts made in this year.\n\n";
     }
@@ -280,6 +286,7 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
         for (const user of top10Commenters) {
             wikiPage += `* **${user.score.toLocaleString()} ${pluralize("comment", user.score)}** from ${markdownEscape(user.member)}\n`;
         }
+        wikiPage += "\n";
     } else {
         wikiPage += "There were no comments made this year.\n\n";
     }
@@ -287,20 +294,23 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
     const posts = _.flatten(await Promise.all(months.map(month => context.redis.zRange(postVotesKey(month), 0, 50, { by: "rank", reverse: true }))));
     const top100Posts = aggregatedItems(posts, 100);
 
-    let itemsInTopPostsList = 0;
-    let topItem = top100Posts.shift();
-    while (topItem && itemsInTopPostsList < 10) {
-        const post = await context.reddit.getPostById(topItem.member);
-        if (!post.removed && !post.removedBy && !post.removedByCategory) {
-            wikiPage += `* +${post.score.toLocaleString()} [${markdownEscape(post.title)}](${post.permalink}), posted by ${markdownEscape(post.authorName)} on ${formatDate(post.createdAt, "yyyy-MM-dd")}\n`;
-            itemsInTopPostsList++;
+    if (top100Posts.length > 0) {
+        wikiPage += "**Top Posts**\n\n";
+
+        let itemsInTopPostsList = 0;
+        let topItem = top100Posts.shift();
+        while (topItem && itemsInTopPostsList < 10) {
+            const post = await context.reddit.getPostById(topItem.member);
+            if (!post.removed && !post.removedBy && !post.removedByCategory) {
+                wikiPage += `* +${post.score.toLocaleString()} [${markdownEscape(post.title)}](${post.permalink}), posted by ${markdownEscape(post.authorName)} on ${formatDate(post.createdAt, "yyyy-MM-dd")}\n`;
+                itemsInTopPostsList++;
+            }
+
+            topItem = top100Posts.shift();
         }
-
-        topItem = top100Posts.shift();
-    }
-
-    if (itemsInTopPostsList === 0) {
-        wikiPage += "There were no posts made this year.\n";
+        wikiPage += "\n";
+    } else {
+        wikiPage += "There were no posts made this year.\n\n";
     }
 
     return wikiPage;
@@ -430,7 +440,7 @@ export async function createSummaryWikiPage (context: JobContext) {
     });
 }
 
-export async function updateWikiPagePermissions (_: ScheduledJobEvent<undefined>, context: TriggerContext) {
+export async function updateWikiPagePermissions (_: ScheduledJobEvent<undefined>, context: JobContext) {
     const currentPermission = await context.redis.get(WIKI_PERMISSION_LEVEL);
     const newPermission = await context.settings.get<boolean>(Setting.RestrictToMods);
     if (newPermission === undefined) {
@@ -440,12 +450,12 @@ export async function updateWikiPagePermissions (_: ScheduledJobEvent<undefined>
     const newPermissionString = JSON.stringify(newPermission);
 
     if (currentPermission !== newPermissionString) {
-        const subreddit = await context.reddit.getCurrentSubreddit();
+        const subredditName = await getSubredditName(context);
         const allPages = (await context.redis.zRange(WIKI_PAGE_KEY, 0, -1)).map(item => item.member);
         for (const page of allPages) {
             await context.reddit.updateWikiPageSettings({
                 page,
-                subredditName: subreddit.name,
+                subredditName,
                 listed: true,
                 permLevel: newPermission ? WikiPagePermissionLevel.MODS_ONLY : WikiPagePermissionLevel.SUBREDDIT_PERMISSIONS,
             });

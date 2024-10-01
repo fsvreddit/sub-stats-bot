@@ -1,7 +1,7 @@
 import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, ZMember } from "@devvit/public-api";
 import { domainCountKey, postTypeCountKey, postVotesKey } from "./redisHelper.js";
 import { addSeconds, getDate, startOfMonth, subDays } from "date-fns";
-import { domainFromUrlString } from "./utility.js";
+import { domainFromUrlString, getSubredditName } from "./utility.js";
 import { JOB_CALCULATE_POST_VOTES } from "./constants.js";
 import pluralize from "pluralize";
 import _ from "lodash";
@@ -9,8 +9,8 @@ import _ from "lodash";
 type PostType = "self" | "nsfw" | "spoiler" | "total";
 
 export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
-    console.log("Post Votes: Calculating post votes for previous day.");
-    const checkDate = subDays(new Date(), -1);
+    const runForToday = event.data?.runForToday as boolean | undefined ?? false;
+    const checkDate = runForToday ? new Date() : subDays(new Date(), 1);
     const redisKey = postVotesKey(checkDate);
 
     let postsToCheck: string[];
@@ -26,16 +26,18 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
 
     if (event.data?.postIds) {
         postsToCheck = event.data.postIds as string[];
+        console.log(`Post Votes: Checking ${postsToCheck.length} ${pluralize("post", newScores.length)} on job second run`);
     } else {
         // First check in the day. Get scores by getTopPosts and remove post type counts
         await context.redis.del(postTypeCountKey(checkDate));
         await context.redis.del(domainCountKey(checkDate));
 
         postsToCheck = (await context.redis.zRange(redisKey, 0, -1)).map(item => item.member);
+        console.log(`Post Votes: Checking ${postsToCheck.length} ${pluralize("post", newScores.length)} on job first run`);
 
         // Because this is the first check on this day, attempt to get scores via getTopPosts.
         const subPosts = await context.reddit.getTopPosts({
-            subredditName: (await context.reddit.getCurrentSubreddit()).name,
+            subredditName: await getSubredditName(context),
             timeframe: getDate(checkDate) < 7 ? "week" : "month",
             limit: 1000,
         }).all();
@@ -122,16 +124,16 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
         console.log(`Post Votes: Scores for ${postsToCheck.length} ${pluralize("post", newScores.length)} still needed. Queuing further check.`);
         await context.scheduler.runJob({
             name: JOB_CALCULATE_POST_VOTES,
-            data: { postIds: postsToCheck },
+            data: { postIds: postsToCheck, runForToday },
             runAt: addSeconds(new Date(), 30),
         });
     }
 }
 
 export async function storeCurrentMonthPostsOnInstall (context: TriggerContext) {
-    const subreddit = await context.reddit.getCurrentSubreddit();
+    const subredditName = await getSubredditName(context);
     const posts = await context.reddit.getTopPosts({
-        subredditName: subreddit.name,
+        subredditName,
         timeframe: getDate(new Date()) < 7 ? "week" : "month",
         limit: 1000,
     }).all();

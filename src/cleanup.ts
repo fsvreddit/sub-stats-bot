@@ -5,6 +5,7 @@ import { userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { CLEANUP_CRON, JOB_CLEANUP_DELETED_USER } from "./constants.js";
 import { parseExpression } from "cron-parser";
 import pluralize from "pluralize";
+import { getSubredditName } from "./utility.js";
 
 const DAYS_BETWEEN_CHECKS = 28;
 
@@ -103,8 +104,9 @@ async function removeAllRecordsForUsers (deletedUsers: string[], context: Trigge
         storedEntriesRemoved += await context.redis.zRem(userCommentCountKey(month), deletedUsers);
     }
 
+    storedEntriesRemoved += await context.redis.zRem(CLEANUP_KEY, deletedUsers);
+
     console.log(`Cleanup: Removed ${storedEntriesRemoved} ${pluralize("entry", storedEntriesRemoved)} from redis.`);
-    await context.redis.zRem(CLEANUP_KEY, deletedUsers);
 }
 
 export async function scheduleAdhocCleanup (context: TriggerContext) {
@@ -143,7 +145,7 @@ export async function cleanupFilteredStore (_: ScheduledJobEvent<undefined>, con
     }
 
     const modQueue = await context.reddit.getModQueue({
-        subreddit: (await context.reddit.getCurrentSubreddit()).name,
+        subreddit: await getSubredditName(context),
         type: "all",
         limit: 1000,
     }).all();

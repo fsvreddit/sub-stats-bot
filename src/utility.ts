@@ -43,3 +43,12 @@ export function domainFromUrlString (url: string): string {
 export function numberWithSign (input: number): string {
     return (input > 0 ? "+" : "") + input.toLocaleString();
 }
+
+export async function getSubredditName (context: TriggerContext): Promise<string> {
+    if (context.subredditName) {
+        return context.subredditName;
+    }
+
+    console.log("Subreddit name: Falling back on getCurrentSubreddit");
+    return (await context.reddit.getCurrentSubreddit()).name;
+}
