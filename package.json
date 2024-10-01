@@ -9,7 +9,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/public-api": "0.11.0-next-2024-09-29-b7b4f2337.0",
+    "@devvit/public-api": "0.11.0-next-2024-09-30-33bb9bfad.0",
     "@types/lodash": "^4.17.7",
     "@types/markdown-escape": "^1.1.3",
     "@types/pluralize": "^0.0.33",
