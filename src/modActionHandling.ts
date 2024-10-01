@@ -2,6 +2,7 @@ import { ModAction } from "@devvit/protos";
 import { TriggerContext } from "@devvit/public-api";
 import { FILTERED_ITEMS_KEY } from "./redisHelper.js";
 import { handlePostOrCommentCreateOrApprove } from "./postAndCommentHandling.js";
+import { userIsMod } from "./utility.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     if (event.action === "approvelink" || event.action === "approvecomment") {
@@ -34,5 +35,10 @@ export async function handleModAction (event: ModAction, context: TriggerContext
     if (event.action && event.targetUser && moderatorEvents.includes(event.action)) {
         await context.redis.del("cachedModList");
         console.log(`Mod Action: Permissions for ${event.targetUser.name} changed, clearing cached mod list.`);
+
+        // Cache mod list.
+        if (event.subreddit) {
+            await userIsMod("AutoModerator", event.subreddit.name, context);
+        }
     }
 }
