@@ -108,8 +108,9 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         const subsAtEnd = await context.redis.zScore(SUBS_KEY, formatDate(lastDayOfMonth, "yyyy-MM-dd"));
         if (subsAtStart && subsAtEnd) {
             wikiPage += `Subscribers ${subsAtEnd >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} to ${subsAtEnd.toLocaleString()} by end of month.\n\n`;
+        } else if (subsAtEnd && !subsAtStart) {
+            wikiPage += `Subscribers were ${subsAtEnd} at month end.\n\n`;
         }
-        wikiPage += `Subscribers are now ${subreddit.numberOfSubscribers.toLocaleString()}\n\n`;
     }
 
     wikiPage += "#### Activity\n\n";
