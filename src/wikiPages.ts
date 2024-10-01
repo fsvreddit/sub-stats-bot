@@ -109,7 +109,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         if (subsAtStart && subsAtEnd) {
             wikiPage += `Subscribers ${subsAtEnd >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} to ${subsAtEnd.toLocaleString()} by end of month.\n\n`;
         } else if (subsAtEnd && !subsAtStart) {
-            wikiPage += `Subscribers were ${subsAtEnd} at month end.\n\n`;
+            wikiPage += `Subscribers were ${subsAtEnd.toLocaleString()} at month end.\n\n`;
         }
     }
 
@@ -145,10 +145,10 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         }
     }
 
-    wikiPage += "**Comments Activity**\n\n*Most Active Days:*\n\n";
     const commentsByDay = (await context.redis.zRange(commentCountKey(month), 0, -1)).filter(item => !isSameMonth(month, new Date()) || (isSameMonth(month, new Date()) && item.member !== todayString));
     commentsByDay.sort((a, b) => b.score - a.score);
     if (commentsByDay.length > 0) {
+        wikiPage += "**Comments Activity**\n\n*Most Active Days:*\n\n";
         for (const item of commentsByDay.slice(0, 5)) {
             wikiPage += `* **${item.score.toLocaleString()} ${pluralize("comment", item.score)}** on ${formatDate(month, "yyyy-MM")}-${item.member}\n`;
         }
@@ -158,8 +158,6 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
             const averageComments = Math.round(_.sum(commentsByDay.map(item => item.score)) / numberOfDaysCovered);
             wikiPage += `*Average comments per day*: ${averageComments.toLocaleString()} ${pluralize("comment", averageComments)}\n\n`;
         }
-    } else {
-        wikiPage += "There were no comments made in this month.\n\n";
     }
 
     wikiPage += "**Top Posters**\n\n";
