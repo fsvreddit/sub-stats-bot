@@ -1,6 +1,7 @@
-import { PostCreate, CommentCreate, PostDelete, CommentDelete } from "@devvit/protos";
 import { TriggerContext, User } from "@devvit/public-api";
-import { ThingPrefix, userIsMod } from "./utility.js";
+import { PostCreate, CommentCreate, PostDelete, CommentDelete } from "@devvit/protos";
+import { isCommentId } from "@devvit/shared-types/tid.js";
+import { userIsMod } from "./utility.js";
 import { addDays, endOfDay, formatDate } from "date-fns";
 import { addFilteredItem, setCleanupForUsers } from "./cleanup.js";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -91,7 +92,7 @@ async function isUserVisible (username: string, context: TriggerContext): Promis
 }
 
 export async function handlePostOrCommentCreateOrApprove (thingId: string, authorName: string, date: Date, action: string, context: TriggerContext) {
-    const kind = thingId.startsWith(ThingPrefix.Comment) ? "comment" : "post";
+    const kind = isCommentId(thingId) ? "comment" : "post";
 
     const itemKey = `item~${thingId}`;
     const itemHandled = await context.redis.get(itemKey);
@@ -134,7 +135,7 @@ export async function handleCommentDelete (event: CommentDelete, context: Trigge
 }
 
 export async function handlePostOrCommentDelete (thingId: string, source: number, context: TriggerContext) {
-    const kind = thingId.startsWith(ThingPrefix.Comment) ? "comment" : "post";
+    const kind = isCommentId(thingId) ? "comment" : "post";
     const itemKey = `item~${thingId}`;
     const itemResult = await context.redis.get(itemKey);
     if (!itemResult) {
