@@ -1,6 +1,6 @@
 import { JobContext, ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel, ZMember } from "@devvit/public-api";
 import { APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
-import { compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, startOfMonth, startOfYear, subYears } from "date-fns";
+import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
@@ -79,6 +79,42 @@ async function createYearWikiPage (date: Date, context: JobContext) {
     await context.redis.zAdd(WIKI_PAGE_KEY, { member: wikiPageName, score: 0 });
 }
 
+interface PostDetails {
+    id: string;
+    title: string;
+    permalink: string;
+    authorName: string;
+    createdAt: Date;
+    score: number;
+    removed: boolean;
+    removedBy?: string;
+    removedByCategory?: string;
+}
+
+async function getPostDetails (postId: string, context: TriggerContext): Promise<PostDetails> {
+    const redisKey = `cachedPost~${postId}`;
+    const cached = await context.redis.get(redisKey);
+    if (cached) {
+        return JSON.parse(cached) as PostDetails;
+    }
+
+    const post = await context.reddit.getPostById(postId);
+    const postDetails = {
+        id: post.id,
+        title: post.title,
+        permalink: post.permalink,
+        authorName: post.authorName,
+        createdAt: post.createdAt,
+        score: post.score,
+        removed: post.removed,
+        removedBy: post.removedBy,
+        removedByCategory: post.removedByCategory,
+    };
+
+    await context.redis.set(redisKey, JSON.stringify(postDetails), { expiration: addMinutes(new Date(), 5) });
+    return postDetails;
+}
+
 async function getContentForMonth (month: Date, subreddit: Subreddit, context: TriggerContext): Promise<string> {
     let wikiPage = `### ${formatDate(month, "yyyy-MM")}\n\n`;
 
@@ -100,7 +136,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         // In current month, so compare start to right now.
         const currentSubs = subreddit.numberOfSubscribers;
         if (subsAtStart) {
-            wikiPage += `Subscribers have ${currentSubs >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} to ${currentSubs.toLocaleString()}\n\n`;
+            wikiPage += `Subscribers have ${currentSubs >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} at the start of the month to ${currentSubs.toLocaleString()}\n\n`;
         } else {
             wikiPage += `Subscribers are now ${currentSubs.toLocaleString()}\n\n`;
         }
@@ -196,9 +232,9 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
     let itemsInTopPostsList = 0;
     let topItem = votesForMonth.shift();
     while (topItem && itemsInTopPostsList < 5) {
-        const post = await context.reddit.getPostById(topItem.member);
-        if (!post.removed && !post.removedBy && !post.removedByCategory) {
-            wikiPage += `* +${post.score.toLocaleString()} [${markdownEscape(post.title)}](${post.permalink}), posted by ${markdownEscape(post.authorName)} on ${formatDate(post.createdAt, "yyyy-MM-dd")}\n`;
+        const postDetails = await getPostDetails(topItem.member, context);
+        if (!postDetails.removed && !postDetails.removedBy && !postDetails.removedByCategory) {
+            wikiPage += `* +${postDetails.score.toLocaleString()} [${markdownEscape(postDetails.title)}](${postDetails.permalink}), posted by ${markdownEscape(postDetails.authorName)} on ${formatDate(postDetails.createdAt, "yyyy-MM-dd")}\n`;
             itemsInTopPostsList++;
         }
 
@@ -299,9 +335,9 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
         let itemsInTopPostsList = 0;
         let topItem = top100Posts.shift();
         while (topItem && itemsInTopPostsList < 10) {
-            const post = await context.reddit.getPostById(topItem.member);
-            if (!post.removed && !post.removedBy && !post.removedByCategory) {
-                wikiPage += `* +${post.score.toLocaleString()} [${markdownEscape(post.title)}](${post.permalink}), posted by ${markdownEscape(post.authorName)} on ${formatDate(post.createdAt, "yyyy-MM-dd")}\n`;
+            const postDetails = await getPostDetails(topItem.member, context);
+            if (!postDetails.removed && !postDetails.removedBy && !postDetails.removedByCategory) {
+                wikiPage += `* +${postDetails.score.toLocaleString()} [${markdownEscape(postDetails.title)}](${postDetails.permalink}), posted by ${markdownEscape(postDetails.authorName)} on ${formatDate(postDetails.createdAt, "yyyy-MM-dd")}\n`;
                 itemsInTopPostsList++;
             }
 
