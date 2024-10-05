@@ -1,8 +1,8 @@
 import { ModAction } from "@devvit/protos";
 import { TriggerContext } from "@devvit/public-api";
-import { FILTERED_ITEMS_KEY } from "./redisHelper.js";
 import { handlePostOrCommentCreateOrApprove } from "./postAndCommentHandling.js";
 import { userIsMod } from "./utility.js";
+import { itemWasFiltered } from "./filteredStore.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     if (event.action === "approvelink" || event.action === "approvecomment") {
@@ -22,7 +22,7 @@ export async function handleModAction (event: ModAction, context: TriggerContext
             return;
         }
 
-        const wasFiltered = await context.redis.zScore(FILTERED_ITEMS_KEY, targetId);
+        const wasFiltered = await itemWasFiltered(targetId, context);
         if (!wasFiltered) {
             return;
         }

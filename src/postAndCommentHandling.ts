@@ -3,9 +3,10 @@ import { PostCreate, CommentCreate, PostDelete, CommentDelete } from "@devvit/pr
 import { isCommentId } from "@devvit/shared-types/tid.js";
 import { userIsMod } from "./utility.js";
 import { addDays, endOfDay, formatDate } from "date-fns";
-import { addFilteredItem, setCleanupForUsers } from "./cleanup.js";
+import { setCleanupForUsers } from "./cleanup.js";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
+import { addFilteredItem } from "./filteredStore.js";
 
 async function userOnIgnoreList (username: string, subreddit: string, context: TriggerContext): Promise<boolean> {
     const settings = await context.settings.getAll();

@@ -1,5 +1,5 @@
-import { JobContext, ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel, ZMember } from "@devvit/public-api";
-import { APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
+import { JobContext, ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
 import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
@@ -268,24 +268,6 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
     }
 
     return wikiPage;
-}
-
-function aggregatedItems (items: ZMember[], topNByScore?: number): ZMember[] {
-    const results: ZMember[] = [];
-    for (const item of items) {
-        const existingItem = results.find(x => x.member === item.member);
-        if (existingItem) {
-            existingItem.score += item.score;
-        } else {
-            results.push(item);
-        }
-    }
-
-    if (topNByScore) {
-        return results.sort((a, b) => b.score - a.score).slice(0, 5);
-    } else {
-        return results;
-    }
 }
 
 async function getSummaryForYearToDate (months: Date[], context: TriggerContext): Promise<string> {

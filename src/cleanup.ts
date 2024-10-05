@@ -1,11 +1,11 @@
 import { JobContext, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
-import { APP_INSTALL_DATE, CLEANUP_KEY, FILTERED_ITEMS_KEY } from "./redisHelper.js";
-import { addDays, addMinutes, eachMonthOfInterval, interval, subMinutes } from "date-fns";
+import { aggregatedItems, APP_INSTALL_DATE, CLEANUP_KEY } from "./redisHelper.js";
+import { addDays, addMinutes, eachMonthOfInterval, interval, startOfMonth, startOfYear, subMinutes } from "date-fns";
 import { userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { CLEANUP_CRON, JOB_CLEANUP_DELETED_USER } from "./constants.js";
 import { parseExpression } from "cron-parser";
 import pluralize from "pluralize";
-import { getSubredditName } from "./utility.js";
+import _ from "lodash";
 
 const DAYS_BETWEEN_CHECKS = 28;
 
@@ -56,6 +56,49 @@ export async function cleanupDeletedAccounts (_: ScheduledJobEvent<undefined>, c
 
     // Get the first N accounts that are due a check.
     const usersToCheck = items.slice(0, itemsToCheck).map(item => item.member);
+    await cleanupUsers(usersToCheck, context);
+
+    if (items.length > itemsToCheck) {
+        await context.scheduler.runJob({
+            runAt: new Date(),
+            name: JOB_CLEANUP_DELETED_USER,
+        });
+    } else {
+        await scheduleAdhocCleanup(context);
+    }
+}
+
+export async function cleanupTopAccounts (event: unknown, context: JobContext) {
+    const installDateValue = await context.redis.get(APP_INSTALL_DATE);
+
+    let firstMonth: Date;
+    if (installDateValue) {
+        firstMonth = _.max([startOfYear(new Date()), startOfMonth(new Date(installDateValue))]) ?? startOfYear(new Date());
+    } else {
+        firstMonth = startOfYear(new Date());
+    }
+
+    const months = eachMonthOfInterval(interval(firstMonth, new Date()));
+
+    const posters = await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true })));
+    const commenters = await Promise.all(months.map(month => context.redis.zRange(userCommentCountKey(month), 0, 99, { by: "rank", reverse: true })));
+
+    const topN = 8; // 8 to account for maybe 1-2 defunct users since last check.
+    const allUsersToCheck = _.uniq([
+        // Top N posters/commenters from the year to date
+        ...aggregatedItems(_.flatten(posters)).slice(0, topN).map(item => item.member),
+        ...aggregatedItems(_.flatten(commenters)).slice(0, topN).map(item => item.member),
+        // Top N posters/commenters from each month
+        ..._.flatten(posters.map(batch => batch.slice(0, topN).map(item => item.member))),
+        ..._.flatten(commenters.map(batch => batch.slice(0, topN).map(item => item.member))),
+    ]);
+
+    console.log(`Cleanup: Checking ${allUsersToCheck.length} ${pluralize("user", allUsersToCheck.length)} that may be included in leaderboard.`);
+
+    await cleanupUsers(allUsersToCheck, context);
+}
+
+async function cleanupUsers (usersToCheck: string[], context: TriggerContext) {
     const userStatuses: UserActive[] = [];
 
     for (const username of usersToCheck) {
@@ -76,15 +119,6 @@ export async function cleanupDeletedAccounts (_: ScheduledJobEvent<undefined>, c
     if (deletedUsers.length > 0) {
         console.log(`Cleanup: ${deletedUsers.length} ${pluralize("user", deletedUsers.length)} out of ${userStatuses.length} ${pluralize("is", deletedUsers.length)} deleted or suspended. Removing from data store.`);
         await removeAllRecordsForUsers(deletedUsers, context);
-    }
-
-    if (items.length > itemsToCheck) {
-        await context.scheduler.runJob({
-            runAt: new Date(),
-            name: JOB_CLEANUP_DELETED_USER,
-        });
-    } else {
-        await scheduleAdhocCleanup(context);
     }
 }
 
@@ -130,29 +164,5 @@ export async function scheduleAdhocCleanup (context: TriggerContext) {
     } else {
         console.log(`Cleanup: Next entry in cleanup log is after next scheduled run (${nextCleanupTime.toUTCString()}).`);
         console.log(`Cleanup: Next cleanup job: ${nextScheduledTime.toUTCString()}`);
-    }
-}
-
-export async function addFilteredItem (thingId: string, context: TriggerContext) {
-    await context.redis.zAdd(FILTERED_ITEMS_KEY, { member: thingId, score: addDays(new Date(), 2).getTime() });
-}
-
-export async function cleanupFilteredStore (_: ScheduledJobEvent<undefined>, context: JobContext) {
-    // Check for items in the filtered store that aren't in the modqueue. These will have been actually removed not filtered.
-    const filteredItems = (await context.redis.zRange(FILTERED_ITEMS_KEY, 0, new Date().getTime(), { by: "score" })).map(item => item.member);
-    if (filteredItems.length === 0) {
-        return;
-    }
-
-    const modQueue = await context.reddit.getModQueue({
-        subreddit: await getSubredditName(context),
-        type: "all",
-        limit: 1000,
-    }).all();
-
-    const itemsNotActuallyFiltered = filteredItems.filter(item => !modQueue.some(queuedItem => queuedItem.id === item));
-    if (itemsNotActuallyFiltered.length > 0) {
-        const removedCount = await context.redis.zRem(FILTERED_ITEMS_KEY, itemsNotActuallyFiltered);
-        console.log(`Cleanup: Removed ${removedCount} ${pluralize("item", filteredItems.length)} from the filtered item store.`);
     }
 }

@@ -2,7 +2,7 @@ import { TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { APP_INSTALL_DATE } from "./redisHelper.js";
 import { storeCurrentMonthPostsOnInstall } from "./postCalculations.js";
-import { CLEANUP_CRON, JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR } from "./constants.js";
+import { CLEANUP_CRON, JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_CLEANUP_TOP_ACCOUNTS, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR } from "./constants.js";
 import { formatDate, getYear } from "date-fns";
 import { scheduleAdhocCleanup } from "./cleanup.js";
 import { updateWikiPageAtEndOfDay } from "./wikiPages.js";
@@ -40,6 +40,11 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     await context.scheduler.runJob({
         name: JOB_CLEANUP_DELETED_USER,
         cron: CLEANUP_CRON,
+    });
+
+    await context.scheduler.runJob({
+        name: JOB_CLEANUP_TOP_ACCOUNTS,
+        cron: "30 23 * * *",
     });
 
     await scheduleAdhocCleanup(context);
