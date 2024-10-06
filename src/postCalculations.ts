@@ -116,6 +116,9 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
 
     for (const item of _.toPairs(domains)) {
         const [domain, count] = item;
+        if (domain === "reddit.com" || domain === "i.redd.it" || domain === "v.redd.it") {
+            continue;
+        }
         await context.redis.zIncrBy(domainCountKey(checkDate), domain, count);
     }
 
