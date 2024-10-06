@@ -284,7 +284,7 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
     if (installDateVal) {
         const installDate = new Date(installDateVal);
         if (isSameYear(lastMonthInInputSet, installDate)) {
-            wikiPage += `Stats have been collected since ${installDateVal}`;
+            wikiPage += `Stats have been collected since ${installDateVal}\n\n`;
         }
     }
 
