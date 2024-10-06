@@ -1,6 +1,6 @@
 import { JobContext, ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
-import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, startOfMonth, startOfYear, subYears } from "date-fns";
+import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, isSameYear, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
@@ -278,6 +278,14 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
         wikiPage = `Year ending ${formatDate(endOfYear(lastMonthInInputSet), "yyyy-MM-dd")}\n\n`;
     } else {
         wikiPage = `Year to date\n\n`;
+    }
+
+    const installDateVal = await context.redis.get(APP_INSTALL_DATE);
+    if (installDateVal) {
+        const installDate = new Date(installDateVal);
+        if (isSameYear(lastMonthInInputSet, installDate)) {
+            wikiPage += `Stats have been collected since ${installDateVal}`;
+        }
     }
 
     const posters = _.flatten(await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true }))));
