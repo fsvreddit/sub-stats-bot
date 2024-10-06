@@ -51,7 +51,7 @@ export function getSubscriberMilestones (subreddit: Subreddit, subscriberCounts:
     if (lastMilestone) {
         for (const subCount of subscriberCounts) {
             const milestoneCrossed = isMilestoneCrossed(lastMilestone, subCount.score);
-            if (milestoneCrossed) {
+            if (milestoneCrossed && !milestones.some(item => item.milestoneCrossed === milestoneCrossed)) {
                 milestones.unshift({ date: subCount.member, milestoneCrossed, subscriberCount: subCount.score });
                 lastMilestone = milestoneCrossed;
             }
