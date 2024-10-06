@@ -88,19 +88,6 @@ Devvit.addSchedulerJob({
     onRun: updateWikiPagePermissions,
 });
 
-Devvit.addMenuItem({
-    label: "Update Sub Statistics",
-    location: "subreddit",
-    forUserType: "moderator",
-    onPress: async (_, context) => {
-        await context.scheduler.runJob({
-            name: JOB_UPDATE_WIKI_PAGE_END_DAY,
-            runAt: new Date(),
-        });
-        context.ui.showToast("Stats will now be updated.");
-    },
-});
-
 Devvit.configure({
     redditAPI: true,
     redis: true,
