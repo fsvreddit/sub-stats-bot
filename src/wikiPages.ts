@@ -135,7 +135,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
     if (isSameMonth(month, new Date())) {
         // In current month, so compare start to right now, but don't show on first day.
         const currentSubs = subreddit.numberOfSubscribers;
-        if (subsAtStart && !isSameDay(firstDayOfMonth, month)) {
+        if (subsAtStart && !isSameDay(firstDayOfMonth, new Date())) {
             wikiPage += `Subscribers have ${currentSubs >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} at the start of the month to ${currentSubs.toLocaleString()}\n\n`;
         } else {
             wikiPage += `Subscribers are now ${currentSubs.toLocaleString()}\n\n`;
