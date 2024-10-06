@@ -1,6 +1,6 @@
 import { JobContext, ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
-import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameMonth, isSameYear, startOfMonth, startOfYear, subYears } from "date-fns";
+import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
@@ -133,9 +133,9 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
     wikiPage += "#### Subscribers\n\n";
     const subsAtStart = await context.redis.zScore(SUBS_KEY, formatDate(firstDayOfMonth, "yyyy-MM-dd"));
     if (isSameMonth(month, new Date())) {
-        // In current month, so compare start to right now.
+        // In current month, so compare start to right now, but don't show on first day.
         const currentSubs = subreddit.numberOfSubscribers;
-        if (subsAtStart) {
+        if (subsAtStart && !isSameDay(firstDayOfMonth, month)) {
             wikiPage += `Subscribers have ${currentSubs >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} at the start of the month to ${currentSubs.toLocaleString()}\n\n`;
         } else {
             wikiPage += `Subscribers are now ${currentSubs.toLocaleString()}\n\n`;
