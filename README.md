@@ -1,7 +1,5 @@
 A Devvit app to store subreddit statistics for moderators and users.
 
-# Subreddit Statistics (/u/sub-stats-bot)
-
 This app was heavily inspired by AssistantBOT, but restores metrics that AssistantBOT became unable to report on due to Pushshift restrictions.
 
 Statistics are updated on wiki pages each day at 01:00 UTC. All dates are in UTC.
@@ -25,3 +23,10 @@ A table of subscriber numbers is also maintained, initially with daily increases
 ## Source Code and Licence
 
 Subreddit Statistics is open source, the code is available on GitHub [here](https://github.com/fsvreddit/sub-stats-bot).
+
+## Change History
+
+v1.0.2
+
+* Calculate post/comment averages correctly on install month
+* Add navigation back to summary page on each year's wiki page

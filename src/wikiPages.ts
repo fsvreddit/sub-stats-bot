@@ -290,6 +290,9 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
         }
     }
 
+    const subredditName = await getSubredditName(context);
+    wikiPage += `[Back to index page](https://www.reddit.com/r/${subredditName}/wiki/sub-stats-bot)\n\n`;
+
     const posters = _.flatten(await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true }))));
     const top10Posters = aggregatedItems(posters, 10);
 
