@@ -29,4 +29,5 @@ Subreddit Statistics is open source, the code is available on GitHub [here](http
 v1.0.2
 
 * Calculate post/comment averages correctly on install month
+* Add option to prepend usernames with /u/ on wiki page
 * Add navigation back to summary page on each year's wiki page
