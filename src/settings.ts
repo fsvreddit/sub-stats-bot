@@ -7,6 +7,7 @@ export enum Setting {
     IgnoreAllModerators = "ignoreAllModerators",
     UserIgnoreList = "userIgnoreList",
     RestrictToMods = "restrictToMods",
+    AddUserTags = "addUserTags",
 }
 
 export const appSettings: SettingsFormField[] = [
@@ -45,7 +46,7 @@ export const appSettings: SettingsFormField[] = [
     },
     {
         type: "group",
-        label: "Wiki Page Visibility",
+        label: "Wiki Page Settings",
         fields: [
             {
                 name: Setting.RestrictToMods,
@@ -59,6 +60,12 @@ export const appSettings: SettingsFormField[] = [
                         runAt: new Date(),
                     });
                 },
+            },
+            {
+                name: Setting.AddUserTags,
+                label: "Add /u/ tags for usernames on wiki pages",
+                type: "boolean",
+                defaultValue: false,
             },
         ],
     },

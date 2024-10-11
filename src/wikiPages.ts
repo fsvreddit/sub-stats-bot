@@ -1,4 +1,4 @@
-import { JobContext, ScheduledJobEvent, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import { JobContext, ScheduledJobEvent, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
 import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -39,7 +39,8 @@ async function createYearWikiPage (date: Date, context: JobContext) {
         wikiContent += await getSummaryForYearToDate(months, context);
     }
 
-    const monthContent = await Promise.all(months.map(month => getContentForMonth(month, subreddit, context)));
+    const settings = await context.settings.getAll();
+    const monthContent = await Promise.all(months.map(month => getContentForMonth(month, subreddit, settings, context)));
 
     for (const content of monthContent) {
         wikiContent += content;
@@ -115,7 +116,15 @@ async function getPostDetails (postId: string, context: TriggerContext): Promise
     return postDetails;
 }
 
-async function getContentForMonth (month: Date, subreddit: Subreddit, context: TriggerContext): Promise<string> {
+function formatUsername (username: string, addUserTag: boolean): string {
+    if (addUserTag) {
+        return `/u/${username}`;
+    } else {
+        return markdownEscape(username);
+    }
+}
+
+async function getContentForMonth (month: Date, subreddit: Subreddit, settings: SettingsValues, context: TriggerContext): Promise<string> {
     let wikiPage = `### ${formatDate(month, "yyyy-MM")}\n\n`;
 
     const installDateValue = await context.redis.get(APP_INSTALL_DATE);
@@ -198,12 +207,14 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
         }
     }
 
+    const addUserTag = settings[Setting.AddUserTags] as boolean | undefined ?? false;
+
     wikiPage += "**Top Posters**\n\n";
     const topPosters = await context.redis.zRange(userPostCountKey(month), 0, 4, { by: "rank", reverse: true });
 
     if (topPosters.length > 0) {
         for (const user of topPosters) {
-            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("post", user.score)}** from ${markdownEscape(user.member)}\n`;
+            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("post", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
         // Remove zero count items.
         await context.redis.zRemRangeByScore(userPostCountKey(month), 0, 0);
@@ -218,7 +229,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
 
     if (topCommenters.length > 0) {
         for (const user of topCommenters) {
-            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("comment", user.score)}** from ${markdownEscape(user.member)}\n`;
+            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("comment", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
         // Remove zero count items.
         await context.redis.zRemRangeByScore(userCommentCountKey(month), 0, 0);
@@ -236,7 +247,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, context: T
     while (topItem && itemsInTopPostsList < 5) {
         const postDetails = await getPostDetails(topItem.member, context);
         if (!postDetails.removed && !postDetails.removedBy && !postDetails.removedByCategory) {
-            wikiPage += `* +${postDetails.score.toLocaleString()} [${markdownEscape(postDetails.title)}](${postDetails.permalink}), posted by ${markdownEscape(postDetails.authorName)} on ${formatDate(postDetails.createdAt, "yyyy-MM-dd")}\n`;
+            wikiPage += `* +${postDetails.score.toLocaleString()} [${markdownEscape(postDetails.title)}](${postDetails.permalink}), posted by ${formatUsername(postDetails.authorName, addUserTag)} on ${formatDate(postDetails.createdAt, "yyyy-MM-dd")}\n`;
             itemsInTopPostsList++;
         }
 
