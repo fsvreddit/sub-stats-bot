@@ -33,6 +33,11 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
         await context.redis.del(domainCountKey(checkDate));
 
         postsToCheck = (await context.redis.zRange(redisKey, 0, -1)).map(item => item.member);
+        if (postsToCheck.length === 0) {
+            console.log("Post Votes: No posts this month.");
+            return;
+        }
+
         console.log(`Post Votes: Checking ${postsToCheck.length} ${pluralize("post", newScores.length)} on job first run`);
 
         // Because this is the first check on this day, attempt to get scores via getTopPosts.
