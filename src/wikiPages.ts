@@ -418,6 +418,7 @@ export async function createSummaryWikiPage (context: JobContext) {
             content += "|-|-|-|\n";
         } else {
             content += "| Date | Subscribers | Change | Average daily change |\n";
+            content += "|-|-|-|-|\n";
         }
 
         const tableRows: string[] = [];
@@ -429,7 +430,7 @@ export async function createSummaryWikiPage (context: JobContext) {
                 const dailyChange = item.subscriberCount - previousItem.subscriberCount;
                 newRow += `${numberWithSign(dailyChange)} |`;
                 if (subscriberCountRecords.granularity !== "day") {
-                    newRow += ` ${numberWithSign(Math.round(dailyChange / differenceInDays(new Date(item.date), new Date(previousItem.date))))}`;
+                    newRow += ` ${numberWithSign(Math.round(dailyChange / differenceInDays(new Date(item.date), new Date(previousItem.date))))} |`;
                 }
             } else {
                 // Oldest row.
