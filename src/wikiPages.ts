@@ -172,7 +172,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         }
         numberOfDaysCovered = getDate(new Date()) - firstDay;
     } else if (installDateValue && isSameMonth(month, new Date(installDateValue))) {
-        numberOfDaysCovered = getDate(endOfMonth(month)) - getDate(new Date(installDateValue));
+        numberOfDaysCovered = 1 + getDate(endOfMonth(month)) - getDate(new Date(installDateValue));
     } else {
         numberOfDaysCovered = getDaysInMonth(month);
     }

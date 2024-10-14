@@ -76,6 +76,12 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
         name: JOB_UPDATE_WIKI_PAGE_END_YEAR,
         cron: "45 0 1 1 *", // 00:45 on 1st January each year
     });
+
+    // On upgrade, also refresh wiki page immediately.
+    await context.scheduler.runJob({
+        name: JOB_UPDATE_WIKI_PAGE_END_DAY,
+        runAt: new Date(),
+    });
 }
 
 async function sendWelcomeModmail (context: TriggerContext) {
