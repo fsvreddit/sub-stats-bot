@@ -35,11 +35,12 @@ async function createYearWikiPage (date: Date, context: JobContext) {
     const subreddit = await context.reddit.getCurrentSubreddit();
     const months = eachMonthOfInterval(interval(firstMonth, date)).sort(compareDesc);
 
+    const settings = await context.settings.getAll();
+
     if (months.length > 1) {
-        wikiContent += await getSummaryForYearToDate(months, context);
+        wikiContent += await getSummaryForYearToDate(months, settings, context);
     }
 
-    const settings = await context.settings.getAll();
     const monthContent = await Promise.all(months.map(month => getContentForMonth(month, subreddit, settings, context)));
 
     for (const content of monthContent) {
@@ -283,7 +284,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
     return wikiPage;
 }
 
-async function getSummaryForYearToDate (months: Date[], context: TriggerContext): Promise<string> {
+async function getSummaryForYearToDate (months: Date[], settings: SettingsValues, context: TriggerContext): Promise<string> {
     let wikiPage: string;
     const lastMonthInInputSet = months[0];
     if (startOfMonth(lastMonthInInputSet) < startOfMonth(new Date())) {
@@ -307,11 +308,13 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
     const posters = _.flatten(await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true }))));
     const top10Posters = aggregatedItems(posters, 10);
 
+    const addUserTag = settings[Setting.AddUserTags] as boolean | undefined ?? false;
+
     wikiPage += "**Top Posters**\n\n";
 
     if (top10Posters.length > 0) {
         for (const user of top10Posters) {
-            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("post", user.score)}** from ${markdownEscape(user.member)}\n`;
+            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("post", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
         wikiPage += "\n";
     } else {
@@ -325,7 +328,7 @@ async function getSummaryForYearToDate (months: Date[], context: TriggerContext)
 
     if (top10Commenters.length > 0) {
         for (const user of top10Commenters) {
-            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("comment", user.score)}** from ${markdownEscape(user.member)}\n`;
+            wikiPage += `* **${user.score.toLocaleString()} ${pluralize("comment", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
         wikiPage += "\n";
     } else {
