@@ -153,7 +153,10 @@ export async function handlePostOrCommentDelete (thingId: string, source: number
 
     // Decrement counts.
     const itemCountKey = kind === "post" ? postCountKey(date) : commentCountKey(date);
-    await context.redis.zIncrBy(itemCountKey, formatDate(date, "dd"), -1);
+    const itemNewDayCount = await context.redis.zIncrBy(itemCountKey, formatDate(date, "dd"), -1);
+    if (itemNewDayCount <= 0) {
+        await context.redis.zRem(itemCountKey, [formatDate(date, "dd")]);
+    }
     const authorCountKey = kind === "post" ? userPostCountKey(date) : userCommentCountKey(date);
     const authorNewCount = await context.redis.zIncrBy(authorCountKey, authorName, -1);
     if (authorNewCount <= 0) {
