@@ -1,4 +1,4 @@
-import { JobContext, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
+import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, CLEANUP_KEY } from "./redisHelper.js";
 import { addDays, addMinutes, eachMonthOfInterval, interval, startOfMonth, startOfYear, subMinutes } from "date-fns";
 import { userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -36,8 +36,12 @@ interface UserActive {
     isActive: boolean;
 }
 
-export async function cleanupDeletedAccounts (_: ScheduledJobEvent<undefined>, context: JobContext) {
-    console.log("Cleanup: Starting cleanup job");
+export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
+    if (event.data?.runDate) {
+        console.log(`Cleanup: Starting cleanup job scheduled for ${event.data.runDate as string}`);
+    } else {
+        console.log("Cleanup: Starting cleanup job");
+    }
 
     const items = await context.redis.zRange(CLEANUP_KEY, 0, new Date().getTime(), { by: "score" });
     if (items.length === 0) {
@@ -158,6 +162,7 @@ export async function scheduleAdhocCleanup (context: TriggerContext) {
         // It's worth running an ad-hoc job.
         console.log(`Cleanup: Next ad-hoc cleanup: ${nextCleanupJobTime.toUTCString()}`);
         await context.scheduler.runJob({
+            data: { runDate: nextCleanupJobTime.toUTCString() },
             name: JOB_CLEANUP_DELETED_USER,
             runAt: nextCleanupJobTime,
         });
