@@ -346,7 +346,7 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
         while (topItem && itemsInTopPostsList < 10) {
             const postDetails = await getPostDetails(topItem.member, context);
             if (!postDetails.removed && !postDetails.removedBy && !postDetails.removedByCategory) {
-                wikiPage += `* +${postDetails.score.toLocaleString()} [${markdownEscape(postDetails.title)}](${postDetails.permalink}), posted by ${markdownEscape(postDetails.authorName)} on ${formatDate(postDetails.createdAt, "yyyy-MM-dd")}\n`;
+                wikiPage += `* +${postDetails.score.toLocaleString()} [${markdownEscape(postDetails.title)}](${postDetails.permalink}), posted by ${formatUsername(postDetails.authorName, addUserTag)} on ${formatDate(postDetails.createdAt, "yyyy-MM-dd")}\n`;
                 itemsInTopPostsList++;
             }
 
