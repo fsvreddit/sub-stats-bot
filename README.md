@@ -26,6 +26,10 @@ Subreddit Statistics is open source, the code is available on GitHub [here](http
 
 ## Change History
 
+Next Release
+
+* /u/ tags are correctly added on "top posts of year" section
+
 v1.0.5
 
 * Calculate post/comment averages correctly on install month
