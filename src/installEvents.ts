@@ -97,10 +97,10 @@ async function sendWelcomeModmail (context: TriggerContext) {
     message += "overnight run at 01:00 UTC, and the summary page will start to populate with useful information after two full days.\n\n";
     message += "If you have any feedback, please send a modmail to /r/fsvapps or a message to /u/fsv. I hope you find this app useful!\n\n";
 
-    await context.reddit.sendPrivateMessage({
-        to: `/r/${subredditName}`,
+    await context.reddit.modMail.createModInboxConversation({
+        subredditId: context.subredditId,
         subject: "Welcome to the Subreddit Statistics Dev Platform App",
-        text: message,
+        bodyMarkdown: message,
     });
 
     console.log("Welcome message sent.");

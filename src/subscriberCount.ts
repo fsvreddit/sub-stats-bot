@@ -73,11 +73,11 @@ interface SubscriberCountRecords {
 
 export function getSubscriberCountsByDate (subscriberCounts: ZMember[]): SubscriberCountRecords {
     let granularity: string;
-    if (subscriberCounts.length > 20 && subscriberCounts.length < 150) {
+    if (subscriberCounts.length > 28 && subscriberCounts.length < 160) {
         // Filter down to one per week.
         subscriberCounts = subscriberCounts.filter(item => isMonday(new Date(item.member)));
         granularity = "week";
-    } else if (subscriberCounts.length >= 150) {
+    } else if (subscriberCounts.length >= 160) {
         // Filter down to one per month
         subscriberCounts = subscriberCounts.filter(item => getDate(new Date(item.member)) === 1);
         granularity = "month";
