@@ -26,7 +26,7 @@ Subreddit Statistics is open source, the code is available on GitHub [here](http
 
 ## Change History
 
-Next Release
+v1.0.8
 
 * /u/ tags are correctly added on "top posts of year" section
 * Increase number of days that sub stats are reported for before going weekly/monthly
