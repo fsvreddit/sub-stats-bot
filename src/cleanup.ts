@@ -52,12 +52,6 @@ export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObjec
 
     const itemsToCheck = 50;
 
-    if (items.length > itemsToCheck) {
-        console.log(`Cleanup: ${items.length} ${pluralize("account", items.length)} ${pluralize("is", items.length)} due a check. Checking first ${itemsToCheck} in this run.`);
-    } else {
-        console.log(`Cleanup: ${items.length} ${pluralize("account", items.length)} ${pluralize("is", items.length)} due a check.`);
-    }
-
     // Get the first N accounts that are due a check.
     const usersToCheck = items.slice(0, itemsToCheck).map(item => item.member);
     await cleanupUsers(usersToCheck, context);
@@ -72,7 +66,7 @@ export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObjec
     }
 }
 
-export async function cleanupTopAccounts (event: unknown, context: JobContext) {
+export async function cleanupTopAccounts (_event: unknown, context: JobContext) {
     const installDateValue = await context.redis.get(APP_INSTALL_DATE);
 
     let firstMonth: Date;
