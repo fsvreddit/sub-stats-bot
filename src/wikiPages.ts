@@ -146,14 +146,22 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         // In current month, so compare start to right now, but don't show on first day.
         const currentSubs = subreddit.numberOfSubscribers;
         if (subsAtStart && !isSameDay(firstDayOfMonth, new Date())) {
-            wikiPage += `Subscribers have ${currentSubs >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} at the start of the month to ${currentSubs.toLocaleString()}\n\n`;
+            if (subsAtStart === currentSubs) {
+                wikiPage += `Subscribers have remained at ${currentSubs.toLocaleString()} throughout the month\n\n`;
+            } else {
+                wikiPage += `Subscribers have ${currentSubs >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} at the start of the month to ${currentSubs.toLocaleString()}\n\n`;
+            }
         } else {
             wikiPage += `Subscribers are now ${currentSubs.toLocaleString()}\n\n`;
         }
     } else {
         const subsAtEnd = await context.redis.zScore(SUBS_KEY, formatDate(lastDayOfMonth, "yyyy-MM-dd"));
         if (subsAtStart && subsAtEnd) {
-            wikiPage += `Subscribers ${subsAtEnd >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} to ${subsAtEnd.toLocaleString()} by end of month.\n\n`;
+            if (subsAtStart === subsAtEnd) {
+                wikiPage += `Subscribers remained at ${subsAtStart.toLocaleString()} throughout the month\n\n`;
+            } else {
+                wikiPage += `Subscribers ${subsAtEnd >= subsAtStart ? "increased" : "decreased"} from ${subsAtStart.toLocaleString()} to ${subsAtEnd.toLocaleString()} by end of month.\n\n`;
+            }
         } else if (subsAtEnd && !subsAtStart) {
             wikiPage += `Subscribers were ${subsAtEnd.toLocaleString()} at month end.\n\n`;
         }
