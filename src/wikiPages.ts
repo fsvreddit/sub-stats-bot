@@ -186,6 +186,9 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         numberOfDaysCovered = getDaysInMonth(month);
     }
 
+    // Remove zero count days
+    await context.redis.zRemRangeByScore(postCountKey(month), 0, 0);
+
     const postsByDay = (await context.redis.zRange(postCountKey(month), 0, -1)).filter(item => !isSameMonth(month, new Date()) || (isSameMonth(month, new Date()) && item.member !== todayString));
     postsByDay.sort((a, b) => b.score - a.score);
     if (postsByDay.length > 0) {
@@ -195,11 +198,12 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         }
         wikiPage += "\n";
 
-        if (postsByDay.length > 1) {
-            const averagePosts = Math.round(_.sum(postsByDay.map(item => item.score)) / numberOfDaysCovered);
-            wikiPage += `*Average posts per day*: ${averagePosts.toLocaleString()} ${pluralize("post", averagePosts)}\n\n`;
-        }
+        const averagePosts = Math.round(_.sum(postsByDay.map(item => item.score)) / numberOfDaysCovered);
+        wikiPage += `*Average posts per day*: ${averagePosts.toLocaleString()} ${pluralize("post", averagePosts)}\n\n`;
     }
+
+    // Remove zero count days
+    await context.redis.zRemRangeByScore(commentCountKey(month), 0, 0);
 
     const commentsByDay = (await context.redis.zRange(commentCountKey(month), 0, -1)).filter(item => !isSameMonth(month, new Date()) || (isSameMonth(month, new Date()) && item.member !== todayString));
     commentsByDay.sort((a, b) => b.score - a.score);
@@ -210,10 +214,8 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         }
         wikiPage += "\n";
 
-        if (commentsByDay.length > 1) {
-            const averageComments = Math.round(_.sum(commentsByDay.map(item => item.score)) / numberOfDaysCovered);
-            wikiPage += `*Average comments per day*: ${averageComments.toLocaleString()} ${pluralize("comment", averageComments)}\n\n`;
-        }
+        const averageComments = Math.round(_.sum(commentsByDay.map(item => item.score)) / numberOfDaysCovered);
+        wikiPage += `*Average comments per day*: ${averageComments.toLocaleString()} ${pluralize("comment", averageComments)}\n\n`;
     }
 
     const addUserTag = settings[Setting.AddUserTags] as boolean | undefined ?? false;
