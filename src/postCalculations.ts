@@ -1,16 +1,30 @@
 import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, ZMember } from "@devvit/public-api";
 import { domainCountKey, postTypeCountKey, postVotesKey } from "./redisHelper.js";
-import { addSeconds, getDate, startOfMonth, subDays } from "date-fns";
+import { addSeconds, getDate, startOfMonth, subDays, subMonths } from "date-fns";
 import { domainFromUrlString, getSubredditName } from "./utility.js";
 import { JOB_CALCULATE_POST_VOTES } from "./constants.js";
 import pluralize from "pluralize";
 import _ from "lodash";
 
 type PostType = "self" | "nsfw" | "spoiler" | "total";
+type RunMode = "today" | "yesterday" | "lastmonth";
 
 export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
-    const runForToday = event.data?.runForToday as boolean | undefined ?? false;
-    const checkDate = runForToday ? new Date() : subDays(new Date(), 1);
+    const runMode = event.data?.runMode as RunMode | undefined ?? "yesterday";
+    let checkDate: Date;
+
+    switch (runMode) {
+        case "today":
+            checkDate = new Date();
+            break;
+        case "yesterday":
+            checkDate = subDays(new Date(), 1);
+            break;
+        case "lastmonth":
+            checkDate = subMonths(new Date(), 1);
+            break;
+    }
+
     const redisKey = postVotesKey(checkDate);
 
     let postsToCheck: string[];
@@ -132,7 +146,7 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
         console.log(`Post Votes: Scores for ${postsToCheck.length} ${pluralize("post", newScores.length)} still needed. Queuing further check.`);
         await context.scheduler.runJob({
             name: JOB_CALCULATE_POST_VOTES,
-            data: { postIds: postsToCheck, runForToday },
+            data: { postIds: postsToCheck, runMode },
             runAt: addSeconds(new Date(), 30),
         });
     }
