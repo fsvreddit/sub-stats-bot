@@ -15,7 +15,7 @@ export async function updateWikiPageAtEndOfDay (_: unknown, context: JobContext)
 }
 
 export async function updateWikiPageAtEndOfYear (_: unknown, context: JobContext) {
-    await createYearWikiPage(subYears(new Date(), 1), context);
+    await createYearWikiPage(endOfYear(subYears(new Date(), 1)), context);
 }
 
 async function createYearWikiPage (date: Date, context: JobContext) {
