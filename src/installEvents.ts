@@ -56,6 +56,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
 
     await context.scheduler.runJob({
         name: JOB_CALCULATE_POST_VOTES,
+        data: { runMode: "yesterday" },
         cron: "1 0 * * *", // Once a day at one minute past midnight
     });
 
@@ -63,8 +64,16 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     // first report contains meaningful scores.
     await context.scheduler.runJob({
         name: JOB_CALCULATE_POST_VOTES,
-        data: { runForToday: true },
+        data: { runMode: "today" },
         cron: "30 0 1 * *", // First day of month at 00:30
+    });
+
+    // We also should run the Post Votes job on the first few days of a month so that
+    // posts made close to the end of the month have meaningful data.
+    await context.scheduler.runJob({
+        name: JOB_CALCULATE_POST_VOTES,
+        data: { runMode: "lastmonth" },
+        cron: "1 0 2,3,4 * *",
     });
 
     await context.scheduler.runJob({
@@ -74,7 +83,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
 
     await context.scheduler.runJob({
         name: JOB_UPDATE_WIKI_PAGE_END_YEAR,
-        cron: "45 0 1 1 *", // 00:45 on 1st January each year
+        cron: "45 0 1,4 1 *", // 00:45 on 1st and 4th January each year
     });
 
     // On upgrade, also refresh wiki page immediately.

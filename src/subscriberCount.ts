@@ -103,8 +103,8 @@ export function estimatedNextMilestone (subreddit: Subreddit, subscriberCounts: 
     }
 
     const differenceInSubs = subreddit.numberOfSubscribers - baseline.score;
-    if (differenceInSubs < 0) {
-        // Subscribers are going down.
+    if (differenceInSubs <= 0) {
+        // Subscribers are going down or are unchanged.
         return;
     }
 
