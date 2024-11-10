@@ -1,4 +1,4 @@
-import { JobContext, ScheduledJobEvent, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import { JobContext, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
 import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, startOfMonth, startOfYear, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -14,7 +14,7 @@ export async function updateWikiPageAtEndOfDay (_: unknown, context: JobContext)
     await createSummaryWikiPage(context);
 }
 
-export async function updateWikiPageAtEndOfYear (_: ScheduledJobEvent<undefined>, context: JobContext) {
+export async function updateWikiPageAtEndOfYear (_: unknown, context: JobContext) {
     await createYearWikiPage(subYears(new Date(), 1), context);
 }
 
@@ -219,8 +219,8 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         }
         // Remove zero count items.
         await context.redis.zRemRangeByScore(userPostCountKey(month), 0, 0);
-        const distinctPosters = await context.redis.zCard(userPostCountKey(month));
-        wikiPage += `\nPosts were made by ${distinctPosters.toLocaleString()} unique ${pluralize("user", distinctPosters)}.\n\n`;
+        const { userCount, itemCount } = await distinctUserCount([userPostCountKey(month)], context);
+        wikiPage += `\n${itemCount.toLocaleString()} ${pluralize("post", itemCount)} ${pluralize("was", itemCount)} made by ${userCount.toLocaleString()} unique ${pluralize("user", userCount)}.\n\n`;
     } else {
         wikiPage += "There were no posts made in this month.\n\n";
     }
@@ -234,8 +234,8 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         }
         // Remove zero count items.
         await context.redis.zRemRangeByScore(userCommentCountKey(month), 0, 0);
-        const distinctCommenters = await context.redis.zCard(userCommentCountKey(month));
-        wikiPage += `\nComments were made by ${distinctCommenters.toLocaleString()} unique ${pluralize("user", distinctCommenters)}.\n\n`;
+        const { userCount, itemCount } = await distinctUserCount([userCommentCountKey(month)], context);
+        wikiPage += `\n${itemCount.toLocaleString()} ${pluralize("comment", itemCount)} ${pluralize("was", itemCount)} made by ${userCount.toLocaleString()} unique ${pluralize("user", userCount)}.\n\n`;
     } else {
         wikiPage += "There were no comments made in this month.\n\n";
     }
@@ -284,6 +284,14 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
     return wikiPage;
 }
 
+async function distinctUserCount (keys: string[], context: TriggerContext) {
+    const items = _.flatten(await Promise.all(keys.map(key => context.redis.zRange(key, 0, -1))));
+    const userCount = _.uniq(items.map(item => item.member)).length;
+    const itemCount = _.sum(items.map(item => item.score));
+
+    return { userCount, itemCount };
+}
+
 async function getSummaryForYearToDate (months: Date[], settings: SettingsValues, context: TriggerContext): Promise<string> {
     let wikiPage: string;
     const lastMonthInInputSet = months[0];
@@ -317,6 +325,8 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
             wikiPage += `* **${user.score.toLocaleString()} ${pluralize("post", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
         wikiPage += "\n";
+        const { userCount, itemCount } = await distinctUserCount(months.map(month => userPostCountKey(month)), context);
+        wikiPage += `${itemCount.toLocaleString()} ${pluralize("post", itemCount)} ${pluralize("was", itemCount)} made by ${userCount.toLocaleString()} distinct ${pluralize("user", userCount)}\n\n`;
     } else {
         wikiPage += "There were no posts made in this year.\n\n";
     }
@@ -331,6 +341,8 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
             wikiPage += `* **${user.score.toLocaleString()} ${pluralize("comment", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
         wikiPage += "\n";
+        const { userCount, itemCount } = await distinctUserCount(months.map(month => userCommentCountKey(month)), context);
+        wikiPage += `${itemCount.toLocaleString()} ${pluralize("comment", itemCount)} ${pluralize("was", itemCount)} made by ${userCount.toLocaleString()} distinct ${pluralize("user", userCount)}\n\n`;
     } else {
         wikiPage += "There were no comments made this year.\n\n";
     }
@@ -485,7 +497,7 @@ export async function createSummaryWikiPage (context: JobContext) {
     });
 }
 
-export async function updateWikiPagePermissions (_: ScheduledJobEvent<undefined>, context: JobContext) {
+export async function updateWikiPagePermissions (_: unknown, context: JobContext) {
     const currentPermission = await context.redis.get(WIKI_PERMISSION_LEVEL);
     const newPermission = await context.settings.get<boolean>(Setting.RestrictToMods);
     if (newPermission === undefined) {
