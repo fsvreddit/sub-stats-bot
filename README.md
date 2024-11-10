@@ -30,6 +30,7 @@ v1.1
 
 * Post votes are now shown correctly on wiki pages for posts made right at the end of a month
 * Number of posts/comments and distinct users are now shown on both year summary and per-month summaries
+* Fix bug that prevents index wiki page from updating if subscriber counts are unchanged
 
 v1.0.8
 
