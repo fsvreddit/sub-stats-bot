@@ -1,3 +1,5 @@
+# Subreddit Statistics (sub-stats-bot)
+
 A Devvit app to store subreddit statistics for moderators and users.
 
 This app was heavily inspired by AssistantBOT, but restores metrics that AssistantBOT became unable to report on due to Pushshift restrictions.
@@ -24,22 +26,22 @@ A table of subscriber numbers is also maintained, initially with daily increases
 
 Subreddit Statistics is open source. The code is available on GitHub [here](https://github.com/fsvreddit/sub-stats-bot).
 
-## Change History
+## Version History
 
-v1.1
+### v1.1
 
 * Post votes are now shown correctly on wiki pages for posts made right at the end of a month
 * Number of posts/comments and distinct users are now shown on both year summary and per-month summaries
 * Fix bug that prevents index wiki page from updating if subscriber counts are unchanged
 * Fix bug that will prevent 2024 year wiki page from emptying in early January
 
-v1.0.8
+### v1.0.8
 
 * /u/ tags are correctly added on "top posts of year" section
 * Increase number of days that sub stats are reported for before going weekly/monthly
 * Prevent "0 posts" from appearing in the "top days" lists when a user deletes the only post of the day
 
-v1.0.5
+### v1.0.5
 
 * Calculate post/comment averages correctly on install month
 * Add option to prepend usernames with /u/ on wiki page
