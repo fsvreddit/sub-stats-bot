@@ -13,13 +13,13 @@ export async function handleAppInstallEvents (_: AppInstall, context: TriggerCon
     console.log("Initial install! Recording install date.");
     await context.redis.set(APP_INSTALL_DATE, formatDate(new Date(), "yyyy-MM-dd"));
 
-    // Store initial subscriber count.
+    // Store initial subscriber count
     await storeSubscriberCount(undefined, context);
 
     // Store upvotes for this month's top 1000 posts
     await storeCurrentMonthPostsOnInstall(context);
 
-    // Create initial wiki page, and send welcome modmail.
+    // Create initial wiki page, and send welcome modmail
     await updateWikiPageAtEndOfDay(undefined, context);
     await sendWelcomeModmail(context);
 }
@@ -33,7 +33,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     const randomMinute = Math.floor(Math.random() * 60);
     await context.scheduler.runJob({
         name: JOB_CLEANUP_FILTERED_STORE,
-        cron: `${randomMinute} * * * *`, // Every hour.
+        cron: `${randomMinute} * * * *`, // Every hour
     });
     console.log(`Filtered item cleanup will run at ${randomMinute} past the hour.`);
 
@@ -61,7 +61,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     });
 
     // We also need to run the Post Votes job on the first day of the month so that the
-    // first report contains meaningful scores.
+    // first report contains meaningful scores
     await context.scheduler.runJob({
         name: JOB_CALCULATE_POST_VOTES,
         data: { runMode: "today" },
@@ -69,7 +69,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     });
 
     // We also should run the Post Votes job on the first few days of a month so that
-    // posts made close to the end of the month have meaningful data.
+    // posts made close to the end of the month have meaningful data
     await context.scheduler.runJob({
         name: JOB_CALCULATE_POST_VOTES,
         data: { runMode: "lastmonth" },
@@ -86,7 +86,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
         cron: "45 0 1,4 1 *", // 00:45 on 1st and 4th January each year
     });
 
-    // On upgrade, also refresh wiki page immediately.
+    // On upgrade, also refresh wiki page immediately
     await context.scheduler.runJob({
         name: JOB_UPDATE_WIKI_PAGE_END_DAY,
         runAt: new Date(),

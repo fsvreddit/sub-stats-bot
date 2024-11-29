@@ -42,7 +42,7 @@ export async function handlePostCreate (event: PostCreate, context: TriggerConte
     }
 
     if (event.post.spam) {
-        // Store record of post/comment for later checking.
+        // Store record of post/comment for later checking
         console.log(`${event.post.id}: New filtered post from ${event.author.name}. Storing for later checking.`);
         await addFilteredItem(event.post.id, context);
         return;
@@ -101,7 +101,7 @@ export async function handlePostOrCommentCreateOrApprove (thingId: string, autho
         return;
     }
 
-    // Check to see if user is shadowbanned. If so, don't record data.
+    // Check to see if user is shadowbanned. If so, don't record data
     const userVisible = await isUserVisible(authorName, context);
     if (!userVisible) {
         console.log(`${thingId}: ${action} ${kind} from ${authorName} who is shadowbanned. Data not recorded.`);
@@ -109,7 +109,7 @@ export async function handlePostOrCommentCreateOrApprove (thingId: string, autho
     }
 
     if (kind === "post") {
-        // Store post upvotes for later calculation.
+        // Store post upvotes for later calculation
         await context.redis.zAdd(postVotesKey(date), { member: thingId, score: 0 });
     }
 
@@ -120,7 +120,7 @@ export async function handlePostOrCommentCreateOrApprove (thingId: string, autho
     const newAuthorCount = await context.redis.zIncrBy(authorCountKey, authorName, 1);
     console.log(`${thingId}: ${action} ${kind} from ${authorName}. Today: ${newItemCount}. Author in month: ${newAuthorCount}`);
 
-    // Store a record of this item being created, in order to handle deletes later.
+    // Store a record of this item being created, in order to handle deletes later
     await context.redis.set(itemKey, `${authorName}~${formatDate(date, "yyyy-MM-dd")}`, { expiration: endOfDay(addDays(new Date(), 1)) });
 
     // Store cleanup entry
@@ -140,7 +140,7 @@ export async function handlePostOrCommentDelete (thingId: string, source: number
     const itemKey = `item~${thingId}`;
     const itemResult = await context.redis.get(itemKey);
     if (!itemResult) {
-        // Duplicate trigger, or belated deletion.
+        // Duplicate trigger, or belated deletion
         return;
     }
 
@@ -151,7 +151,7 @@ export async function handlePostOrCommentDelete (thingId: string, source: number
 
     console.log(`${thingId}: deleted or removed for ${authorName}. Source: ${eventSource[source]}`);
 
-    // Decrement counts.
+    // Decrement counts
     const itemCountKey = kind === "post" ? postCountKey(date) : commentCountKey(date);
     const itemNewDayCount = await context.redis.zIncrBy(itemCountKey, formatDate(date, "dd"), -1);
     if (itemNewDayCount <= 0) {
@@ -169,7 +169,7 @@ export async function handlePostOrCommentDelete (thingId: string, source: number
     await context.redis.del(itemKey);
 
     if (source !== 1) {
-        // Removed by someone other than themeselves - may be modqueued.
+        // Removed by someone other than themeselves - may be modqueued
         await addFilteredItem(thingId, context);
     }
 }
