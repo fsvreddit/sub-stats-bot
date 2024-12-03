@@ -1,5 +1,3 @@
-# Subreddit Statistics (sub-stats-bot)
-
 A Devvit app to store subreddit statistics for moderators and users.
 
 This app was heavily inspired by AssistantBOT, but restores metrics that AssistantBOT became unable to report on due to Pushshift restrictions.
