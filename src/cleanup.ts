@@ -21,6 +21,7 @@ async function userActive (username: string, context: TriggerContext): Promise<b
     try {
         user = await context.reddit.getUserByUsername(username);
     } catch {
+        //
     }
 
     if (!user) {

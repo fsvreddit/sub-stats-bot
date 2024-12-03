@@ -51,6 +51,7 @@ async function createYearWikiPage (date: Date, context: JobContext) {
     try {
         existingPage = await context.reddit.getWikiPage(subreddit.name, wikiPageName);
     } catch {
+        //
     }
 
     const wikiSaveOptions = {
