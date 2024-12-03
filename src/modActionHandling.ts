@@ -36,7 +36,7 @@ export async function handleModAction (event: ModAction, context: TriggerContext
         await context.redis.del("cachedModList");
         console.log(`Mod Action: Permissions for ${event.targetUser.name} changed, clearing cached mod list.`);
 
-        // Cache mod list.
+        // Cache mod list
         if (event.subreddit) {
             await userIsMod("AutoModerator", event.subreddit.name, context);
         }

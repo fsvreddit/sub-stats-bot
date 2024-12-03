@@ -143,7 +143,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
     wikiPage += "#### Subscribers\n\n";
     const subsAtStart = await context.redis.zScore(SUBS_KEY, formatDate(firstDayOfMonth, "yyyy-MM-dd"));
     if (isSameMonth(month, new Date())) {
-        // In current month, so compare start to right now, but don't show on first day.
+        // In current month, so compare start to right now, but don't show on first day
         const currentSubs = subreddit.numberOfSubscribers;
         if (subsAtStart && !isSameDay(firstDayOfMonth, new Date())) {
             if (subsAtStart === currentSubs) {
@@ -227,7 +227,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         for (const user of topPosters) {
             wikiPage += `* **${user.score.toLocaleString()} ${pluralize("post", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
-        // Remove zero count items.
+        // Remove zero count items
         await context.redis.zRemRangeByScore(userPostCountKey(month), 0, 0);
         const { userCount, itemCount } = await distinctUserCount([userPostCountKey(month)], context);
         wikiPage += `\n${itemCount.toLocaleString()} ${pluralize("post", itemCount)} ${pluralize("was", itemCount)} made by ${userCount.toLocaleString()} unique ${pluralize("user", userCount)}.\n\n`;
@@ -242,7 +242,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         for (const user of topCommenters) {
             wikiPage += `* **${user.score.toLocaleString()} ${pluralize("comment", user.score)}** from ${formatUsername(user.member, addUserTag)}\n`;
         }
-        // Remove zero count items.
+        // Remove zero count items
         await context.redis.zRemRangeByScore(userCommentCountKey(month), 0, 0);
         const { userCount, itemCount } = await distinctUserCount([userCommentCountKey(month)], context);
         wikiPage += `\n${itemCount.toLocaleString()} ${pluralize("comment", itemCount)} ${pluralize("was", itemCount)} made by ${userCount.toLocaleString()} unique ${pluralize("user", userCount)}.\n\n`;
@@ -251,7 +251,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
     }
 
     wikiPage += "**Top Posts**\n\n";
-    // For top posts, we're going to get way more than we need (5) in case some are deleted or removed.
+    // For top posts, we're going to get way more than we need (5) in case some are deleted or removed
     const votesForMonth = await context.redis.zRange(postVotesKey(month), 0, 50, { by: "rank", reverse: true });
     let itemsInTopPostsList = 0;
     let topItem = votesForMonth.shift();
@@ -306,7 +306,7 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
     let wikiPage: string;
     const lastMonthInInputSet = months[0];
     if (startOfMonth(lastMonthInInputSet) < startOfMonth(new Date())) {
-        // Year has finished.
+        // Year has finished
         wikiPage = `Year ending ${formatDate(endOfYear(lastMonthInInputSet), "yyyy-MM-dd")}\n\n`;
     } else {
         wikiPage = `Year to date\n\n`;
@@ -432,12 +432,12 @@ export async function createSummaryWikiPage (context: JobContext) {
     }
     content += "\n\n";
 
-    // If we have captured more than two subscriber counts, create subscriber count table.
+    // If we have captured more than two subscriber counts, create subscriber count table
     content += "## Subscriber Counts\n\n";
     const subscriberCountRecords = getSubscriberCountsByDate(subscriberCounts);
     if (subscriberCountRecords.counts.length > 2) {
         console.log("Building subscriber stats page");
-        // Build a table of subscriber counts.
+        // Build a table of subscriber counts
         if (subscriberCountRecords.granularity === "day") {
             content += "| Date | Subscribers | Change |\n";
             content += "|-|-|-|\n";
@@ -458,7 +458,7 @@ export async function createSummaryWikiPage (context: JobContext) {
                     newRow += ` ${numberWithSign(Math.round(dailyChange / differenceInDays(new Date(item.date), new Date(previousItem.date))))} |`;
                 }
             } else {
-                // Oldest row.
+                // Oldest row
                 newRow += "--- |";
                 if (subscriberCountRecords.granularity !== "day") {
                     newRow += " --- |";
@@ -479,7 +479,6 @@ export async function createSummaryWikiPage (context: JobContext) {
     try {
         existingPage = await context.reddit.getWikiPage(subreddit.name, summaryPage);
     } catch {
-        //
     }
 
     const wikiSaveOptions = {

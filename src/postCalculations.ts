@@ -54,7 +54,7 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
 
         console.log(`Post Votes: Checking ${postsToCheck.length} ${pluralize("post", newScores.length)} on job first run`);
 
-        // Because this is the first check on this day, attempt to get scores via getTopPosts.
+        // Because this is the first check on this day, attempt to get scores via getTopPosts
         const subPosts = await context.reddit.getTopPosts({
             subredditName: await getSubredditName(context),
             timeframe: getDate(checkDate) < 7 ? "week" : "month",
@@ -84,14 +84,14 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
             }
         }
 
-        // Remove entries for posts we now have scores ready for.
+        // Remove entries for posts we now have scores ready for
         postsToCheck = postsToCheck.filter(postId => !newScores.some(item => item.member === postId));
         console.log(`Post Votes: Grabbed scores for ${newScores.length} ${pluralize("post", newScores.length)} from Top Posts list`);
     }
 
     let itemsCheckedIndividually = 0;
 
-    // Process up to 50 posts in a batch.
+    // Process up to 50 posts in a batch
     let postId = postsToCheck.shift();
     while (postId && itemsCheckedIndividually < 50) {
         const post = await context.reddit.getPostById(postId);
@@ -122,7 +122,7 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
         postId = postsToCheck.shift();
     }
 
-    // Store the new post scores.
+    // Store the new post scores
     if (newScores.length > 0) {
         await context.redis.zAdd(redisKey, ...newScores);
         console.log(`Post Votes: Stored scores for ${newScores.length} ${pluralize("post", newScores.length)}`);
@@ -142,7 +142,7 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
     }
 
     if (postsToCheck.length > 0) {
-        // Schedule another run, still got posts to check.
+        // Schedule another run, still got posts to check
         console.log(`Post Votes: Scores for ${postsToCheck.length} ${pluralize("post", newScores.length)} still needed. Queuing further check.`);
         await context.scheduler.runJob({
             name: JOB_CALCULATE_POST_VOTES,
