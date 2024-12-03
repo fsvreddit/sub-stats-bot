@@ -75,7 +75,7 @@ test("Hundreds of thousands milestone", () => {
     expect(result).toEqual(150000);
 });
 
-test("Hundreds of thousands milestone2", () => {
+test("Hundreds of thousands milestone 2", () => {
     const result = nextMilestone(173216);
     expect(result).toEqual(200000);
 });

@@ -46,7 +46,7 @@ export function isMilestoneCrossed (left: number, right: number): number | undef
 export function getSubscriberMilestones (subreddit: Subreddit, subscriberCounts: ZMember[]): SubscriberMilestone[] {
     const milestones: SubscriberMilestone[] = [{ date: formatDate(subreddit.createdAt, "yyyy-MM-dd") }];
 
-    // Grab the earliest count found and use that as the baseline.
+    // Grab the earliest count found and use that as the baseline
     let lastMilestone = subscriberCounts.shift()?.score;
     if (lastMilestone) {
         for (const subCount of subscriberCounts) {
@@ -74,7 +74,7 @@ interface SubscriberCountRecords {
 export function getSubscriberCountsByDate (subscriberCounts: ZMember[]): SubscriberCountRecords {
     let granularity: string;
     if (subscriberCounts.length > 28 && subscriberCounts.length < 160) {
-        // Filter down to one per week.
+        // Filter down to one per week
         subscriberCounts = subscriberCounts.filter(item => isMonday(new Date(item.member)));
         granularity = "week";
     } else if (subscriberCounts.length >= 160) {
@@ -96,7 +96,7 @@ export function estimatedNextMilestone (subreddit: Subreddit, subscriberCounts: 
         return;
     }
     // Find the subscriber count for two weeks ago, or the oldest
-    // one that exists if we have less than two weeks worth of data.
+    // one that exists if we have less than two weeks worth of data
     let baseline = subscriberCounts.find(item => item.member === formatDate(subDays(new Date(), 14), "yyyy-MM-dd"));
     if (!baseline) {
         baseline = subscriberCounts[0];
@@ -104,7 +104,7 @@ export function estimatedNextMilestone (subreddit: Subreddit, subscriberCounts: 
 
     const differenceInSubs = subreddit.numberOfSubscribers - baseline.score;
     if (differenceInSubs <= 0) {
-        // Subscribers are going down or are unchanged.
+        // Subscribers are going down or are unchanged
         return;
     }
 

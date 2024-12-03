@@ -1,5 +1,4 @@
 // Job Names
-
 export const JOB_CLEANUP_DELETED_USER = "cleanupDeletedAccounts";
 export const JOB_CLEANUP_FILTERED_STORE = "cleanupFilteredStore";
 export const JOB_CLEANUP_TOP_ACCOUNTS = "cleanupTopAccounts";

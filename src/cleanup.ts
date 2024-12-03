@@ -52,7 +52,7 @@ export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObjec
 
     const itemsToCheck = 50;
 
-    // Get the first N accounts that are due a check.
+    // Get the first N accounts that are due a check
     const usersToCheck = items.slice(0, itemsToCheck).map(item => item.member);
     await cleanupUsers(usersToCheck, context);
 
@@ -81,7 +81,7 @@ export async function cleanupTopAccounts (_event: unknown, context: JobContext) 
     const posters = await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true })));
     const commenters = await Promise.all(months.map(month => context.redis.zRange(userCommentCountKey(month), 0, 99, { by: "rank", reverse: true })));
 
-    const topN = 8; // 8 to account for maybe 1-2 defunct users since last check.
+    const topN = 8; // 8 to account for maybe 1-2 defunct users since last check
     const allUsersToCheck = _.uniq([
         // Top N posters/commenters from the year to date
         ...aggregatedItems(_.flatten(posters)).slice(0, topN).map(item => item.member),
@@ -107,13 +107,13 @@ async function cleanupUsers (usersToCheck: string[], context: TriggerContext) {
     const activeUsers = userStatuses.filter(user => user.isActive).map(user => user.username);
     const deletedUsers = userStatuses.filter(user => !user.isActive).map(user => user.username);
 
-    // For active users, set their next check date to be one day from now.
+    // For active users, set their next check date to be one day from now
     if (activeUsers.length > 0) {
         console.log(`Cleanup: ${activeUsers.length} ${pluralize("user", activeUsers.length)} still active out of ${userStatuses.length}. Resetting next check time.`);
         await setCleanupForUsers(activeUsers, context);
     }
 
-    // For deleted users, remove them from both the cleanup log and remove previous records of bans and approvals.
+    // For deleted users, remove them from both the cleanup log and remove previous records of bans and approvals
     if (deletedUsers.length > 0) {
         console.log(`Cleanup: ${deletedUsers.length} ${pluralize("user", deletedUsers.length)} out of ${userStatuses.length} ${pluralize("is", deletedUsers.length)} deleted or suspended. Removing from data store.`);
         await removeAllRecordsForUsers(deletedUsers, context);
@@ -123,14 +123,14 @@ async function cleanupUsers (usersToCheck: string[], context: TriggerContext) {
 async function removeAllRecordsForUsers (deletedUsers: string[], context: TriggerContext) {
     const installDateValue = await context.redis.get(APP_INSTALL_DATE);
     if (!installDateValue) {
-        // Impossible, set on install.
+        // Impossible, set on install
         return;
     }
 
     const installDate = new Date(installDateValue);
     const allMonthsInScope = eachMonthOfInterval(interval(installDate, new Date()));
     let storedEntriesRemoved = 0;
-    // For each month, remove every user.
+    // For each month, remove every user
     for (const month of allMonthsInScope) {
         storedEntriesRemoved += await context.redis.zRem(userPostCountKey(month), deletedUsers);
         storedEntriesRemoved += await context.redis.zRem(userCommentCountKey(month), deletedUsers);
@@ -153,7 +153,7 @@ export async function scheduleAdhocCleanup (context: TriggerContext) {
     const nextScheduledTime = parseExpression(CLEANUP_CRON).next().toDate();
 
     if (nextCleanupJobTime < subMinutes(nextScheduledTime, 5)) {
-        // It's worth running an ad-hoc job.
+        // It's worth running an ad-hoc job
         console.log(`Cleanup: Next ad-hoc cleanup: ${nextCleanupJobTime.toUTCString()}`);
         await context.scheduler.runJob({
             data: { runDate: nextCleanupJobTime.toUTCString() },
