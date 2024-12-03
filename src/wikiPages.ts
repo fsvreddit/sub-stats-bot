@@ -479,6 +479,7 @@ export async function createSummaryWikiPage (context: JobContext) {
     try {
         existingPage = await context.reddit.getWikiPage(subreddit.name, summaryPage);
     } catch {
+        //
     }
 
     const wikiSaveOptions = {
