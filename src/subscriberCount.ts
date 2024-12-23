@@ -111,5 +111,9 @@ export function estimatedNextMilestone (subreddit: Subreddit, subscriberCounts: 
     const nextMilestoneToCross = nextMilestone(subreddit.numberOfSubscribers);
 
     const daysBeforeNextMilestone = (nextMilestoneToCross - subreddit.numberOfSubscribers) / (differenceInSubs / differenceInDays(new Date(), new Date(baseline.member)));
+    if (daysBeforeNextMilestone < 1) {
+        return "less than a day";
+    }
+
     return formatDistance(addDays(new Date(), daysBeforeNextMilestone), new Date());
 }

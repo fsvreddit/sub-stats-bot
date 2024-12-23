@@ -409,7 +409,7 @@ export async function createSummaryWikiPage (context: JobContext) {
         content += "|-|-|-|-|\n";
 
         let previousMilestone: SubscriberMilestone | undefined;
-        for (const milestone of milestones) {
+        for (const milestone of milestones.reverse()) {
             content += `| ${milestone.date} | ${milestone.milestoneCrossed?.toLocaleString() ?? "Created"} | `;
             if (previousMilestone && milestone.subscriberCount && previousMilestone.subscriberCount) {
                 const daysBetween = differenceInDays(new Date(milestone.date), new Date(previousMilestone.date));

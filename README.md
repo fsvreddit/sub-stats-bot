@@ -26,7 +26,12 @@ Subreddit Statistics is open source. The code is available on GitHub [here](http
 
 ## Version History
 
-### v1.1
+### v1.2.0
+
+* Fixed milestone display once more than one milestone has passed
+* Fixed estimated milestone cross date where the milestone is due to be crossed within 24 hours
+
+### v1.1.0
 
 * Post votes are now shown correctly on wiki pages for posts made right at the end of a month
 * Number of posts/comments and distinct users are now shown on both year summary and per-month summaries
