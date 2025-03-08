@@ -1,5 +1,5 @@
 import { Devvit } from "@devvit/public-api";
-import { handleAppInstallEvents, handleAppInstallUpgradeEvents } from "./installEvents.js";
+import { handleAppInstallEvents, handleAppInstallUpgradeEvents, handleAppUninstallEvents } from "./installEvents.js";
 import { storeSubscriberCount } from "./subscriberCount.js";
 import { handleCommentCreate, handleCommentDelete, handlePostCreate, handlePostDelete } from "./postAndCommentHandling.js";
 import { cleanupDeletedAccounts, cleanupTopAccounts } from "./cleanup.js";
@@ -7,7 +7,7 @@ import { calculatePostVotes } from "./postCalculations.js";
 import { appSettings } from "./settings.js";
 import { updateWikiPageAtEndOfDay, updateWikiPageAtEndOfYear, updateWikiPagePermissions } from "./wikiPages.js";
 import { handleModAction } from "./modActionHandling.js";
-import { JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_CLEANUP_TOP_ACCOUNTS, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR } from "./constants.js";
+import { JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_CLEANUP_TOP_ACCOUNTS, JOB_INITIAL_INSTALL_TASKS, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR } from "./constants.js";
 import { cleanupFilteredStore } from "./filteredStore.js";
 
 Devvit.addSettings(appSettings);
@@ -86,6 +86,11 @@ Devvit.addSchedulerJob({
 Devvit.addSchedulerJob({
     name: "updateWikiPagePermissions",
     onRun: updateWikiPagePermissions,
+});
+
+Devvit.addSchedulerJob({
+    name: JOB_INITIAL_INSTALL_TASKS,
+    onRun: handleAppUninstallEvents,
 });
 
 Devvit.configure({

@@ -26,6 +26,10 @@ Subreddit Statistics is open source. The code is available on GitHub [here](http
 
 ## Version History
 
+### v1.2.1
+
+* Fixed an issue that prevents install from working on some subreddits
+
 ### v1.2.0
 
 * Fixed milestone display once more than one milestone has passed
