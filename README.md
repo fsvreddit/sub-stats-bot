@@ -26,7 +26,7 @@ Subreddit Statistics is open source. The code is available on GitHub [here](http
 
 ## Version History
 
-### v1.2.1
+### v1.2.2
 
 * Fixed an issue that prevents install from working on some subreddits
 
