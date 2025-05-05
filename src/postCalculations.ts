@@ -1,7 +1,7 @@
 import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, ZMember } from "@devvit/public-api";
 import { domainCountKey, postTypeCountKey, postVotesKey } from "./redisHelper.js";
 import { addSeconds, getDate, startOfMonth, subDays, subMonths } from "date-fns";
-import { domainFromUrlString, getSubredditName } from "./utility.js";
+import { domainFromUrlString } from "./utility.js";
 import { JOB_CALCULATE_POST_VOTES } from "./constants.js";
 import pluralize from "pluralize";
 import { toPairs } from "lodash";
@@ -56,7 +56,7 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
 
         // Because this is the first check on this day, attempt to get scores via getTopPosts
         const subPosts = await context.reddit.getTopPosts({
-            subredditName: await getSubredditName(context),
+            subredditName: context.subredditName ?? await context.reddit.getCurrentSubredditName(),
             timeframe: getDate(checkDate) < 7 ? "week" : "month",
             limit: 1000,
         }).all();
@@ -153,9 +153,8 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
 }
 
 export async function storeCurrentMonthPostsOnInstall (context: TriggerContext) {
-    const subredditName = await getSubredditName(context);
     const posts = await context.reddit.getTopPosts({
-        subredditName,
+        subredditName: context.subredditName ?? await context.reddit.getCurrentSubredditName(),
         timeframe: getDate(new Date()) < 7 ? "week" : "month",
         limit: 1000,
     }).all();

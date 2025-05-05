@@ -4,7 +4,7 @@ import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMo
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
-import { getSubredditName, numberWithSign } from "./utility.js";
+import { numberWithSign } from "./utility.js";
 import markdownEscape from "markdown-escape";
 import pluralize from "pluralize";
 import { flatten, sum, uniq } from "lodash";
@@ -314,7 +314,7 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
         }
     }
 
-    const subredditName = await getSubredditName(context);
+    const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
     wikiPage.push({ p: `[Back to index page](https://www.reddit.com/r/${subredditName}/wiki/sub-stats-bot)` });
 
     const posters = flatten(await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true }))));
@@ -518,7 +518,7 @@ export async function updateWikiPagePermissions (_: unknown, context: JobContext
     const newPermissionString = JSON.stringify(newPermission);
 
     if (currentPermission !== newPermissionString) {
-        const subredditName = await getSubredditName(context);
+        const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
         const allPages = (await context.redis.zRange(WIKI_PAGE_KEY, 0, -1)).map(item => item.member);
         for (const page of allPages) {
             await context.reddit.updateWikiPageSettings({
