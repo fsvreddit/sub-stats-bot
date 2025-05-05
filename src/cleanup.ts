@@ -3,7 +3,7 @@ import { aggregatedItems, APP_INSTALL_DATE, CLEANUP_KEY } from "./redisHelper.js
 import { addDays, addMinutes, eachMonthOfInterval, interval, startOfMonth, startOfYear, subMinutes } from "date-fns";
 import { userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { CLEANUP_CRON, JOB_CLEANUP_DELETED_USER } from "./constants.js";
-import { parseExpression } from "cron-parser";
+import { CronExpressionParser } from "cron-parser";
 import pluralize from "pluralize";
 import { flatten, max, uniq } from "lodash";
 
@@ -160,7 +160,7 @@ export async function scheduleAdhocCleanup (context: TriggerContext) {
 
     const nextCleanupTime = new Date(nextEntries[0].score);
     const nextCleanupJobTime = addMinutes(nextCleanupTime, 5);
-    const nextScheduledTime = parseExpression(CLEANUP_CRON).next().toDate();
+    const nextScheduledTime = CronExpressionParser.parse(CLEANUP_CRON).next().toDate();
 
     if (nextCleanupJobTime < subMinutes(nextScheduledTime, 5)) {
         // It's worth running an ad-hoc job
