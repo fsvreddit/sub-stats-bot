@@ -1,6 +1,6 @@
 import { JobContext, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
-import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, startOfMonth, startOfYear, subYears } from "date-fns";
+import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, startOfMonth, startOfYear, subWeeks, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
@@ -374,11 +374,11 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
 export async function createSummaryWikiPage (context: JobContext) {
     const summaryPage = "sub-stats-bot";
 
-    const installDate = await context.redis.get(APP_INSTALL_DATE);
+    const installDateVal = await context.redis.get(APP_INSTALL_DATE);
     const subreddit = await context.reddit.getCurrentSubreddit();
 
     const content: json2md.DataObject[] = [];
-    content.push({ p: `Subreddit statistics for /r/${subreddit.name}. Statistics have been gathered since ${installDate}` });
+    content.push({ p: `Subreddit statistics for /r/${subreddit.name}. Statistics have been gathered since ${installDateVal}` });
 
     content.push({ h2: "Detailed statistics by year" });
 
@@ -418,7 +418,12 @@ export async function createSummaryWikiPage (context: JobContext) {
 
         content.push({ table: { headers: ["Date Reached", "Subscriber Milestone", "Average Daily Change", "Days From Previous Milestone"], rows } });
     } else {
-        content.push({ p: "There have been no milestones crossed since the app was installed." });
+        if (installDateVal) {
+            const installDate = new Date(installDateVal);
+            if (installDate < subWeeks(new Date(), 1)) {
+                content.push({ p: "There have been no milestones crossed since the app was installed." });
+            }
+        }
     }
 
     const nextMilestoneDistance = estimatedNextMilestone(subreddit, subscriberCounts);
