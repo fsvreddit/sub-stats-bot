@@ -1,13 +1,13 @@
 import { JobContext, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
-import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, startOfMonth, startOfYear, subWeeks, subYears } from "date-fns";
+import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, max, startOfMonth, startOfYear, subWeeks, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { estimatedNextMilestone, getSubscriberCountsByDate, getSubscriberMilestones, nextMilestone, SubscriberCount, SubscriberMilestone } from "./subscriberCount.js";
 import { getSubredditName, numberWithSign } from "./utility.js";
 import markdownEscape from "markdown-escape";
 import pluralize from "pluralize";
-import _ from "lodash";
+import { flatten, sum, uniq } from "lodash";
 import json2md from "json2md";
 
 export async function updateWikiPageAtEndOfDay (_: unknown, context: JobContext) {
@@ -30,7 +30,7 @@ async function createYearWikiPage (date: Date, context: JobContext) {
 
     let firstMonth: Date;
     if (installDateValue) {
-        firstMonth = _.max([startOfYear(date), startOfMonth(new Date(installDateValue))]) ?? startOfYear(date);
+        firstMonth = max([startOfYear(date), startOfMonth(new Date(installDateValue))]);
     } else {
         firstMonth = startOfYear(date);
     }
@@ -203,7 +203,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         wikiPage.push({ p: "*Most Active Days:*" });
         wikiPage.push({ ul: postsByDay.slice(0, 5).map(item => `**${item.score.toLocaleString()} ${pluralize("post", item.score)}** on ${formatDate(month, "yyyy-MM")}-${item.member}`) });
 
-        const averagePosts = Math.round(_.sum(postsByDay.map(item => item.score)) / numberOfDaysCovered);
+        const averagePosts = Math.round(sum(postsByDay.map(item => item.score)) / numberOfDaysCovered);
         wikiPage.push({ p: `*Average posts per day*: ${averagePosts.toLocaleString()} ${pluralize("post", averagePosts)}` });
     }
 
@@ -217,7 +217,7 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
         wikiPage.push({ p: "*Most Active Days:*" });
         wikiPage.push({ ul: commentsByDay.slice(0, 5).map(item => `**${item.score.toLocaleString()} ${pluralize("comment", item.score)}** on ${formatDate(month, "yyyy-MM")}-${item.member}`) });
 
-        const averageComments = Math.round(_.sum(commentsByDay.map(item => item.score)) / numberOfDaysCovered);
+        const averageComments = Math.round(sum(commentsByDay.map(item => item.score)) / numberOfDaysCovered);
         wikiPage.push({ p: `*Average comments per day*: ${averageComments.toLocaleString()} ${pluralize("comment", averageComments)}` });
     }
 
@@ -289,9 +289,9 @@ async function getContentForMonth (month: Date, subreddit: Subreddit, settings: 
 }
 
 async function distinctUserCount (keys: string[], context: TriggerContext) {
-    const items = _.flatten(await Promise.all(keys.map(key => context.redis.zRange(key, 0, -1))));
-    const userCount = _.uniq(items.map(item => item.member)).length;
-    const itemCount = _.sum(items.map(item => item.score));
+    const items = flatten(await Promise.all(keys.map(key => context.redis.zRange(key, 0, -1))));
+    const userCount = uniq(items.map(item => item.member)).length;
+    const itemCount = sum(items.map(item => item.score));
 
     return { userCount, itemCount };
 }
@@ -317,7 +317,7 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
     const subredditName = await getSubredditName(context);
     wikiPage.push({ p: `[Back to index page](https://www.reddit.com/r/${subredditName}/wiki/sub-stats-bot)` });
 
-    const posters = _.flatten(await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true }))));
+    const posters = flatten(await Promise.all(months.map(month => context.redis.zRange(userPostCountKey(month), 0, 99, { by: "rank", reverse: true }))));
     const top10Posters = aggregatedItems(posters, 10);
 
     const addUserTag = settings[Setting.AddUserTags] as boolean | undefined ?? false;
@@ -332,7 +332,7 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
         wikiPage.push({ p: "There were no posts made in this year." });
     }
 
-    const commenters = _.flatten(await Promise.all(months.map(month => context.redis.zRange(userCommentCountKey(month), 0, 99, { by: "rank", reverse: true }))));
+    const commenters = flatten(await Promise.all(months.map(month => context.redis.zRange(userCommentCountKey(month), 0, 99, { by: "rank", reverse: true }))));
     const top10Commenters = aggregatedItems(commenters, 10);
 
     wikiPage.push({ p: "**Top Commenters**" });
@@ -345,7 +345,7 @@ async function getSummaryForYearToDate (months: Date[], settings: SettingsValues
         wikiPage.push({ p: "There were no comments made in this year." });
     }
 
-    const posts = _.flatten(await Promise.all(months.map(month => context.redis.zRange(postVotesKey(month), 0, 50, { by: "rank", reverse: true }))));
+    const posts = flatten(await Promise.all(months.map(month => context.redis.zRange(postVotesKey(month), 0, 50, { by: "rank", reverse: true }))));
     const top100Posts = aggregatedItems(posts, 100);
 
     if (top100Posts.length > 0) {
