@@ -4,7 +4,7 @@ import { addSeconds, getDate, startOfMonth, subDays, subMonths } from "date-fns"
 import { domainFromUrlString, getSubredditName } from "./utility.js";
 import { JOB_CALCULATE_POST_VOTES } from "./constants.js";
 import pluralize from "pluralize";
-import _ from "lodash";
+import { toPairs } from "lodash";
 
 type PostType = "self" | "nsfw" | "spoiler" | "total";
 type RunMode = "today" | "yesterday" | "lastmonth";
@@ -133,7 +133,7 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
     await context.redis.zIncrBy(postTypeCountKey(checkDate), "self", postTypes.self);
     await context.redis.zIncrBy(postTypeCountKey(checkDate), "total", postTypes.total);
 
-    for (const item of _.toPairs(domains)) {
+    for (const item of toPairs(domains)) {
         const [domain, count] = item;
         if (domain === "reddit.com" || domain === "i.redd.it" || domain === "v.redd.it") {
             continue;

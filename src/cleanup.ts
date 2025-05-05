@@ -5,7 +5,7 @@ import { userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { CLEANUP_CRON, JOB_CLEANUP_DELETED_USER } from "./constants.js";
 import { parseExpression } from "cron-parser";
 import pluralize from "pluralize";
-import _ from "lodash";
+import { flatten, max, uniq } from "lodash";
 
 const DAYS_BETWEEN_CHECKS = 28;
 
@@ -25,10 +25,20 @@ async function userActive (username: string, context: TriggerContext): Promise<b
     }
 
     if (!user) {
-        console.log(`Cleanup: ${username} appears to be deleted or shadowbanned.`);
+        // User may be shadowbanned or suspended. Check if mod notes are callable.
+        try {
+            await context.reddit.getModNotes({
+                subreddit: context.subredditName ?? await context.reddit.getCurrentSubredditName(),
+                user: username,
+            }).all();
+            return true; // User is shadowbanned or suspended, not deleted
+        } catch {
+            console.log(`Cleanup: ${username} appears to be deleted.`);
+            return false; // User is deleted, otherwise notes would be retrievable.
+        }
     }
 
-    return user !== undefined;
+    return true;
 }
 
 interface UserActive {
@@ -71,7 +81,7 @@ export async function cleanupTopAccounts (_event: unknown, context: JobContext) 
 
     let firstMonth: Date;
     if (installDateValue) {
-        firstMonth = _.max([startOfYear(new Date()), startOfMonth(new Date(installDateValue))]) ?? startOfYear(new Date());
+        firstMonth = max([startOfYear(new Date()), startOfMonth(new Date(installDateValue))]) ?? startOfYear(new Date());
     } else {
         firstMonth = startOfYear(new Date());
     }
@@ -82,13 +92,13 @@ export async function cleanupTopAccounts (_event: unknown, context: JobContext) 
     const commenters = await Promise.all(months.map(month => context.redis.zRange(userCommentCountKey(month), 0, 99, { by: "rank", reverse: true })));
 
     const topN = 8; // 8 to account for maybe 1-2 defunct users since last check
-    const allUsersToCheck = _.uniq([
+    const allUsersToCheck = uniq([
         // Top N posters/commenters from the year to date
-        ...aggregatedItems(_.flatten(posters)).slice(0, topN).map(item => item.member),
-        ...aggregatedItems(_.flatten(commenters)).slice(0, topN).map(item => item.member),
+        ...aggregatedItems(flatten(posters)).slice(0, topN).map(item => item.member),
+        ...aggregatedItems(flatten(commenters)).slice(0, topN).map(item => item.member),
         // Top N posters/commenters from each month
-        ..._.flatten(posters.map(batch => batch.slice(0, topN).map(item => item.member))),
-        ..._.flatten(commenters.map(batch => batch.slice(0, topN).map(item => item.member))),
+        ...flatten(posters.map(batch => batch.slice(0, topN).map(item => item.member))),
+        ...flatten(commenters.map(batch => batch.slice(0, topN).map(item => item.member))),
     ]);
 
     console.log(`Cleanup: Checking ${allUsersToCheck.length} ${pluralize("user", allUsersToCheck.length)} that may be included in leaderboard.`);
