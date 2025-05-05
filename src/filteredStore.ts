@@ -1,6 +1,5 @@
 import { JobContext, TriggerContext } from "@devvit/public-api";
 import { addDays } from "date-fns";
-import { getSubredditName } from "./utility.js";
 import pluralize from "pluralize";
 
 const FILTERED_ITEMS_KEY = "filteredItems";
@@ -17,7 +16,7 @@ export async function cleanupFilteredStore (_: unknown, context: JobContext) {
     }
 
     const modQueue = await context.reddit.getModQueue({
-        subreddit: await getSubredditName(context),
+        subreddit: context.subredditName ?? await context.reddit.getCurrentSubredditName(),
         type: "all",
         limit: 1000,
     }).all();
