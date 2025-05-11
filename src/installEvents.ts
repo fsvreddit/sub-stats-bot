@@ -87,7 +87,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     });
 }
 
-export async function handleAppUninstallEvents (_: unknown, context: JobContext) {
+export async function handleInitialAppInstallTasks (_: unknown, context: JobContext) {
     // Store initial subscriber count
     await storeSubscriberCount(undefined, context);
 

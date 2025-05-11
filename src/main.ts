@@ -1,5 +1,5 @@
 import { Devvit } from "@devvit/public-api";
-import { handleAppInstallEvents, handleAppInstallUpgradeEvents, handleAppUninstallEvents } from "./installEvents.js";
+import { handleAppInstallEvents, handleAppInstallUpgradeEvents, handleInitialAppInstallTasks } from "./installEvents.js";
 import { storeSubscriberCount } from "./subscriberCount.js";
 import { handleCommentCreate, handleCommentDelete, handlePostCreate, handlePostDelete } from "./postAndCommentHandling.js";
 import { cleanupDeletedAccounts, cleanupTopAccounts } from "./cleanup.js";
@@ -90,7 +90,7 @@ Devvit.addSchedulerJob({
 
 Devvit.addSchedulerJob({
     name: JOB_INITIAL_INSTALL_TASKS,
-    onRun: handleAppUninstallEvents,
+    onRun: handleInitialAppInstallTasks,
 });
 
 Devvit.configure({
