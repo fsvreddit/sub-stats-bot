@@ -6,7 +6,7 @@ import { CLEANUP_CRON, JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_C
 import { formatDate, getYear } from "date-fns";
 import { scheduleAdhocCleanup } from "./cleanup.js";
 import { storeSubscriberCount } from "./subscriberCount.js";
-import { getSubredditName } from "./utility.js";
+import json2md from "json2md";
 
 export async function handleAppInstallEvents (_: AppInstall, context: TriggerContext) {
     console.log("Initial install! Recording install date.");
@@ -87,7 +87,7 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     });
 }
 
-export async function handleAppUninstallEvents (_: unknown, context: JobContext) {
+export async function handleInitialAppInstallTasks (_: unknown, context: JobContext) {
     // Store initial subscriber count
     await storeSubscriberCount(undefined, context);
 
@@ -99,22 +99,27 @@ export async function handleAppUninstallEvents (_: unknown, context: JobContext)
 }
 
 async function sendWelcomeModmail (context: TriggerContext) {
-    const subredditName = await getSubredditName(context);
+    const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
 
-    let message = "Thank you for installing Subreddit Statistics!\n\n";
-    message += "This app will start collecting statistics for your subreddit immediately, and update ";
-    message += "statistics wiki pages at 01:00 UTC every day.\n\n";
-    message += "You can find links to the statistics pages here:\n\n";
-    message += `* [Subreddit summary page](https://www.reddit.com/r/${subredditName}/wiki/sub-stats-bot)\n`;
-    message += `* [Current year's statistics](https://www.reddit.com/r/${subredditName}/wiki/sub-stats-bot/${getYear(new Date())})\n\n`;
-    message += "Current year's statistics will be not be able to report on anything other than 'top posts' until the first ";
-    message += "overnight run at 01:00 UTC, and the summary page will start to populate with useful information after two full days.\n\n";
-    message += "If you have any feedback, please send a modmail to /r/fsvapps or a message to /u/fsv. I hope you find this app useful!\n\n";
+    const message: json2md.DataObject[] = [
+        { p: "Thank you for installing Subreddit Statistics!" },
+        { p: "This app will start collecting statistics for your subreddit immediately, and update statistics wiki pages at 01:00 UTC every day." },
+        { p: "You can find links to the statistics pages here:" },
+        {
+            ul: [
+                `Subreddit summary page: https://www.reddit.com/r/${subredditName}/wiki/sub-stats-bot`,
+                `Current year's statistics: https://www.reddit.com/r/${subredditName}/wiki/sub-stats-bot/${getYear(new Date())}`,
+            ],
+        },
+        { p: "Current year's statistics will be not be able to report on anything other than 'top posts' until the first overnight run at 01:00 UTC, and the summary page will start to populate with useful information after two full days." },
+        { p: "If you have any feedback, please send a modmail to /r/fsvapps or a message to /u/fsv. I hope you find this app useful!" },
+
+    ];
 
     await context.reddit.modMail.createModInboxConversation({
         subredditId: context.subredditId,
         subject: "Welcome to the Subreddit Statistics Dev Platform App",
-        bodyMarkdown: message,
+        bodyMarkdown: json2md(message),
     });
 
     console.log("Welcome message sent.");
