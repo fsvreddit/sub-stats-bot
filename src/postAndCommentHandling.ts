@@ -1,6 +1,6 @@
 import { TriggerContext, User } from "@devvit/public-api";
 import { PostCreate, CommentCreate, PostDelete, CommentDelete } from "@devvit/protos";
-import { isCommentId } from "@devvit/shared-types/tid.js";
+import { isCommentId } from "@devvit/public-api/types/tid.js";
 import { userIsMod } from "./utility.js";
 import { addDays, endOfDay, formatDate } from "date-fns";
 import { setCleanupForUsers } from "./cleanup.js";

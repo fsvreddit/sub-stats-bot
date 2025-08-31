@@ -4,6 +4,8 @@ This app was heavily inspired by AssistantBOT, but restores metrics that Assista
 
 Statistics are updated on wiki pages each day at 01:00 UTC. All dates are in UTC.
 
+**Note**: If your sub has opted in to the new wiki experience, you will **not** see the wiki pages update. However, you can navigate to the equivalent on Old Reddit to see statistics, even after you have opted in. Unfortunately, there is no API support for the new wiki experience and so it is not possible to update new wiki pages yet. Once support is available, it will be added.
+
 ### Monthly Subreddit Statistics
 
 This app captures the number of posts and comments made each day, the top posters and commenters, and the top posts made in the subreddit. This information is displayed on wiki pages on your subreddit, broken down by month. Posts and comments that were filtered to the mod queue and not approved, removed by a mod, Reddit, Automod, or deleted by the user are not included in the statistics.
@@ -25,6 +27,10 @@ A table of subscriber numbers is also maintained, initially with daily increases
 Subreddit Statistics is open source. The code is available on GitHub [here](https://github.com/fsvreddit/sub-stats-bot).
 
 ## Version History
+
+### v1.2.11
+
+* Update Dev Platform version and README. No public facing changes in this release.
 
 ### v1.2.10
 
