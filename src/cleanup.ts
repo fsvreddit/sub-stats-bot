@@ -81,7 +81,7 @@ export async function cleanupTopAccounts (_event: unknown, context: JobContext) 
 
     let firstMonth: Date;
     if (installDateValue) {
-        firstMonth = max([startOfYear(new Date()), startOfMonth(new Date(installDateValue))]) ?? startOfYear(new Date());
+        firstMonth = max([startOfYear(new Date()), startOfMonth(new Date(installDateValue))]);
     } else {
         firstMonth = startOfYear(new Date());
     }

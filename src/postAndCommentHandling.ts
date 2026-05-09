@@ -7,6 +7,7 @@ import { setCleanupForUsers } from "./cleanup.js";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { addFilteredItem } from "./filteredStore.js";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 async function userOnIgnoreList (username: string, subreddit: string, context: TriggerContext): Promise<boolean> {
     const settings = await context.settings.getAll();
@@ -41,6 +42,10 @@ export async function handlePostCreate (event: PostCreate, context: TriggerConte
         return;
     }
 
+    if (await hasTriggerBeenHandled(context.redis, `postCreate:${event.post.id}`)) {
+        return;
+    }
+
     if (event.post.spam) {
         // Store record of post/comment for later checking
         console.log(`${event.post.id}: New filtered post from ${event.author.name}. Storing for later checking.`);
@@ -57,6 +62,10 @@ export async function handlePostCreate (event: PostCreate, context: TriggerConte
 
 export async function handleCommentCreate (event: CommentCreate, context: TriggerContext) {
     if (!event.comment || !event.author || !event.subreddit) {
+        return;
+    }
+
+    if (await hasTriggerBeenHandled(context.redis, `commentCreate:${event.comment.id}`)) {
         return;
     }
 
@@ -128,10 +137,16 @@ export async function handlePostOrCommentCreateOrApprove (thingId: string, autho
 }
 
 export async function handlePostDelete (event: PostDelete, context: TriggerContext) {
+    if (await hasTriggerBeenHandled(context.redis, `postDelete:${event.postId}:${event.deletedAt?.getTime()}`)) {
+        return;
+    }
     await handlePostOrCommentDelete(event.postId, event.source, context);
 }
 
 export async function handleCommentDelete (event: CommentDelete, context: TriggerContext) {
+    if (await hasTriggerBeenHandled(context.redis, `commentDelete:${event.commentId}:${event.deletedAt?.getTime()}`)) {
+        return;
+    }
     await handlePostOrCommentDelete(event.commentId, event.source, context);
 }
 

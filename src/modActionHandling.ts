@@ -3,9 +3,18 @@ import { TriggerContext } from "@devvit/public-api";
 import { handlePostOrCommentCreateOrApprove } from "./postAndCommentHandling.js";
 import { userIsMod } from "./utility.js";
 import { itemWasFiltered } from "./filteredStore.js";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { addMinutes } from "date-fns";
+
+async function hasModActionBeenHandled (event: ModAction, context: TriggerContext): Promise<boolean> {
+    return await hasTriggerBeenHandled(context.redis, `modAction:${event.action}:${event.moderator?.name}:${event.actionedAt?.getTime()}`, { expiration: addMinutes(new Date(), 10) });
+}
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     if (event.action === "approvelink" || event.action === "approvecomment") {
+        if (await hasModActionBeenHandled(event, context)) {
+            return;
+        }
         let targetId: string | undefined;
         let date: Date | undefined;
         if (event.action === "approvelink" && event.targetPost) {
@@ -33,6 +42,9 @@ export async function handleModAction (event: ModAction, context: TriggerContext
     const moderatorEvents = ["acceptmoderatorinvite", "addmoderator", "removemoderator", "reordermoderators"];
 
     if (event.action && event.targetUser && moderatorEvents.includes(event.action)) {
+        if (await hasModActionBeenHandled(event, context)) {
+            return;
+        }
         await context.redis.del("cachedModList");
         console.log(`Mod Action: Permissions for ${event.targetUser.name} changed, clearing cached mod list.`);
 

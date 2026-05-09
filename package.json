@@ -9,13 +9,9 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/protos": "0.12.0",
-    "@devvit/public-api": "0.12.0",
-    "@devvit/shared-types": "0.12.0",
-    "@types/json2md": "^1.5.4",
-    "@types/lodash": "^4.17.7",
-    "@types/markdown-escape": "^1.1.3",
-    "@types/pluralize": "^0.0.33",
+    "@devvit/protos": "0.12.22",
+    "@devvit/public-api": "0.12.22",
+    "@fsvreddit/fsv-devvit-helpers": "github:fsvreddit/fsv-devvit-helpers",
     "cron-parser": "^5.1.1",
     "date-fns": "^4.1.0",
     "json2md": "^2.0.3",
@@ -24,11 +20,13 @@
     "pluralize": "^8.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.9.0",
-    "@stylistic/eslint-plugin": "^5.2.3",
-    "@vitest/eslint-plugin": "^1.1.4",
+    "@fsvreddit/eslint-config": "github:fsvreddit/eslint-config",
+    "@types/json2md": "^1.5.4",
+    "@types/lodash": "^4.17.7",
+    "@types/markdown-escape": "^1.1.3",
+    "@types/pluralize": "^0.0.33",
+    "eslint": "^10.0.0",
     "typescript": "5.8.3",
-    "typescript-eslint": "^8.4.0",
-    "vitest": "^3.0.5"
+    "vitest": "^4.0.0"
   }
 }

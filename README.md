@@ -28,6 +28,10 @@ Subreddit Statistics is open source. The code is available on GitHub [here](http
 
 ## Version History
 
+### v1.2.12
+
+* Mitigate against duplicate actions if the Developer Platform is having issues
+
 ### v1.2.11
 
 * Update Dev Platform version and README. No public facing changes in this release.
