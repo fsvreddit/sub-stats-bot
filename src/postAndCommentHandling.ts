@@ -7,7 +7,7 @@ import { setCleanupForUsers } from "./cleanup.js";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
 import { Setting } from "./settings.js";
 import { addFilteredItem } from "./filteredStore.js";
-import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { getTrueUsername, hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 async function userOnIgnoreList (username: string, subreddit: string, context: TriggerContext): Promise<boolean> {
     const settings = await context.settings.getAll();
@@ -46,18 +46,20 @@ export async function handlePostCreate (event: PostCreate, context: TriggerConte
         return;
     }
 
+    const authorName = await getTrueUsername(context.reddit, event.author.name, event.post.id);
+
     if (event.post.spam) {
         // Store record of post/comment for later checking
-        console.log(`${event.post.id}: New filtered post from ${event.author.name}. Storing for later checking.`);
+        console.log(`${event.post.id}: New filtered post from ${authorName}. Storing for later checking.`);
         await addFilteredItem(event.post.id, context);
         return;
     }
 
-    if (await userOnIgnoreList(event.author.name, event.subreddit.name, context)) {
+    if (await userOnIgnoreList(authorName, event.subreddit.name, context)) {
         return;
     }
 
-    await handlePostOrCommentCreateOrApprove(event.post.id, event.author.name, new Date(event.post.createdAt), "New", context);
+    await handlePostOrCommentCreateOrApprove(event.post.id, authorName, new Date(event.post.createdAt), "New", context);
 }
 
 export async function handleCommentCreate (event: CommentCreate, context: TriggerContext) {
@@ -65,22 +67,24 @@ export async function handleCommentCreate (event: CommentCreate, context: Trigge
         return;
     }
 
+    const authorName = await getTrueUsername(context.reddit, event.author.name, event.comment.id);
+
     if (await hasTriggerBeenHandled(context.redis, `commentCreate:${event.comment.id}`)) {
         return;
     }
 
     if (event.comment.spam) {
         // Store record of post/comment for later checking.
-        console.log(`${event.comment.id}: New filtered comment from ${event.author.name}. Storing for later checking.`);
+        console.log(`${event.comment.id}: New filtered comment from ${authorName}. Storing for later checking.`);
         await addFilteredItem(event.comment.id, context);
         return;
     }
 
-    if (await userOnIgnoreList(event.author.name, event.subreddit.name, context)) {
+    if (await userOnIgnoreList(authorName, event.subreddit.name, context)) {
         return;
     }
 
-    await handlePostOrCommentCreateOrApprove(event.comment.id, event.author.name, new Date(event.comment.createdAt), "New", context);
+    await handlePostOrCommentCreateOrApprove(event.comment.id, authorName, new Date(event.comment.createdAt), "New", context);
 }
 
 async function isUserVisible (username: string, context: TriggerContext): Promise<boolean> {

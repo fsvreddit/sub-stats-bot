@@ -28,6 +28,10 @@ Subreddit Statistics is open source. The code is available on GitHub [here](http
 
 ## Version History
 
+### v1.2.13
+
+* Fixed an issue where some users would be reported as `[redacted]` in the stats
+
 ### v1.2.12
 
 * Mitigate against duplicate actions if the Developer Platform is having issues
