@@ -88,7 +88,7 @@ export async function handleCommentCreate (event: CommentCreate, context: Trigge
 }
 
 async function isUserVisible (username: string, context: TriggerContext): Promise<boolean> {
-const redisKey = `uservisible~${username}`;    
+    const redisKey = `uservisible~${username}`;
     const value = await context.redis.get(redisKey);
     if (value) {
         return JSON.parse(value) as boolean;
