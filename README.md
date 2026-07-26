@@ -28,6 +28,10 @@ Subreddit Statistics is open source. The code is available on GitHub [here](http
 
 ## Version History
 
+### v1.2.15
+
+* Mitigate against duplicate actions if Dev Platform is having issues
+
 ### v1.2.14
 
 * Fixed an issue that would cause users to be recorded as shadowbanned when they aren't (thanks to u/loamy for finding and contributing this fix)

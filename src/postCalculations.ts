@@ -1,15 +1,22 @@
 import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, ZMember } from "@devvit/public-api";
 import { domainCountKey, postTypeCountKey, postVotesKey } from "./redisHelper.js";
-import { addSeconds, getDate, startOfMonth, subDays, subMonths } from "date-fns";
+import { addMinutes, addSeconds, getDate, startOfMonth, subDays, subMonths } from "date-fns";
 import { domainFromUrlString } from "./utility.js";
 import { JOB_CALCULATE_POST_VOTES } from "./constants.js";
 import pluralize from "pluralize";
 import { toPairs } from "lodash";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 type PostType = "self" | "nsfw" | "spoiler" | "total";
 type RunMode = "today" | "yesterday" | "lastmonth";
 
 export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `job:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+        console.warn(`Post votes job ${jobGuid} has already been handled. Skipping.`);
+        return;
+    }
+
     const runMode = event.data?.runMode as RunMode | undefined ?? "yesterday";
     let checkDate: Date;
 
@@ -146,7 +153,7 @@ export async function calculatePostVotes (event: ScheduledJobEvent<JSONObject | 
         console.log(`Post Votes: Scores for ${postsToCheck.length} ${pluralize("post", newScores.length)} still needed. Queuing further check.`);
         await context.scheduler.runJob({
             name: JOB_CALCULATE_POST_VOTES,
-            data: { postIds: postsToCheck, runMode },
+            data: { postIds: postsToCheck, runMode, jobGuid: crypto.randomUUID() },
             runAt: addSeconds(new Date(), 30),
         });
     }

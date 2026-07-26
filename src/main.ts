@@ -7,7 +7,7 @@ import { calculatePostVotes } from "./postCalculations.js";
 import { appSettings } from "./settings.js";
 import { updateWikiPageAtEndOfDay, updateWikiPageAtEndOfYear, updateWikiPagePermissions } from "./wikiPages.js";
 import { handleModAction } from "./modActionHandling.js";
-import { JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_CLEANUP_TOP_ACCOUNTS, JOB_INITIAL_INSTALL_TASKS, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR } from "./constants.js";
+import { JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_CLEANUP_TOP_ACCOUNTS, JOB_INITIAL_INSTALL_TASKS, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR, JOB_UPDATE_WIKI_PERMISSIONS } from "./constants.js";
 import { cleanupFilteredStore } from "./filteredStore.js";
 
 Devvit.addSettings(appSettings);
@@ -84,7 +84,7 @@ Devvit.addSchedulerJob({
 });
 
 Devvit.addSchedulerJob({
-    name: "updateWikiPagePermissions",
+    name: JOB_UPDATE_WIKI_PERMISSIONS,
     onRun: updateWikiPagePermissions,
 });
 

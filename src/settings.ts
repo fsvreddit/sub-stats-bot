@@ -58,6 +58,7 @@ export const appSettings: SettingsFormField[] = [
                     await context.scheduler.runJob({
                         name: JOB_UPDATE_WIKI_PERMISSIONS,
                         runAt: new Date(),
+                        data: { jobGuid: crypto.randomUUID() },
                     });
                 },
             },

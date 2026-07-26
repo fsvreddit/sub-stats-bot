@@ -1,4 +1,4 @@
-import { JobContext, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import { JobContext, JSONObject, ScheduledJobEvent, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
 import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, max, startOfMonth, startOfYear, subWeeks, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -9,8 +9,15 @@ import markdownEscape from "markdown-escape";
 import pluralize from "pluralize";
 import { flatten, sum, uniq } from "lodash";
 import json2md from "json2md";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
-export async function updateWikiPageAtEndOfDay (_: unknown, context: JobContext) {
+export async function updateWikiPageAtEndOfDay (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `job:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+        console.warn(`Wiki update job ${jobGuid} has already been handled. Skipping.`);
+        return;
+    }
+
     await createYearWikiPage(new Date(), context);
     await createSummaryWikiPage(context);
 }
@@ -508,7 +515,13 @@ export async function createSummaryWikiPage (context: JobContext) {
     });
 }
 
-export async function updateWikiPagePermissions (_: unknown, context: JobContext) {
+export async function updateWikiPagePermissions (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `job:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+        console.warn(`Wiki permissions job ${jobGuid} has already been handled. Skipping.`);
+        return;
+    }
+
     const currentPermission = await context.redis.get(WIKI_PERMISSION_LEVEL);
     const newPermission = await context.settings.get<boolean>(Setting.RestrictToMods);
     if (newPermission === undefined) {

@@ -1,12 +1,13 @@
-import { JobContext, TriggerContext } from "@devvit/public-api";
+import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { APP_INSTALL_DATE } from "./redisHelper.js";
 import { storeCurrentMonthPostsOnInstall } from "./postCalculations.js";
 import { CLEANUP_CRON, JOB_CALCULATE_POST_VOTES, JOB_CLEANUP_DELETED_USER, JOB_CLEANUP_FILTERED_STORE, JOB_CLEANUP_TOP_ACCOUNTS, JOB_INITIAL_INSTALL_TASKS, JOB_STORE_SUBSCRIBER_COUNT, JOB_UPDATE_WIKI_PAGE_END_DAY, JOB_UPDATE_WIKI_PAGE_END_YEAR } from "./constants.js";
-import { formatDate, getYear } from "date-fns";
+import { addMinutes, formatDate, getYear } from "date-fns";
 import { scheduleAdhocCleanup } from "./cleanup.js";
 import { storeSubscriberCount } from "./subscriberCount.js";
 import json2md from "json2md";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 export async function handleAppInstallEvents (_: AppInstall, context: TriggerContext) {
     console.log("Initial install! Recording install date.");
@@ -15,6 +16,7 @@ export async function handleAppInstallEvents (_: AppInstall, context: TriggerCon
     await context.scheduler.runJob({
         name: JOB_INITIAL_INSTALL_TASKS,
         runAt: new Date(),
+        data: { jobGuid: crypto.randomUUID() },
     });
 }
 
@@ -84,10 +86,17 @@ export async function handleAppInstallUpgradeEvents (_: AppInstall | AppUpgrade,
     await context.scheduler.runJob({
         name: JOB_UPDATE_WIKI_PAGE_END_DAY,
         runAt: new Date(),
+        data: { jobGuid: crypto.randomUUID() },
     });
 }
 
-export async function handleInitialAppInstallTasks (_: unknown, context: JobContext) {
+export async function handleInitialAppInstallTasks (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `job:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+        console.warn(`Initial install job ${jobGuid} has already been handled. Skipping.`);
+        return;
+    }
+
     // Store initial subscriber count
     await storeSubscriberCount(undefined, context);
 
