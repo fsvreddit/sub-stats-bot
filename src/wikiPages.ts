@@ -1,4 +1,4 @@
-import { JobContext, JSONObject, ScheduledJobEvent, SettingsValues, Subreddit, TriggerContext, WikiPage, WikiPagePermissionLevel } from "@devvit/public-api";
+import { JobContext, JSONObject, ScheduledJobEvent, SettingsValues, Subreddit, TriggerContext } from "@devvit/public-api";
 import { aggregatedItems, APP_INSTALL_DATE, domainCountKey, postTypeCountKey, SUBS_KEY, WIKI_PAGE_KEY, WIKI_PERMISSION_LEVEL } from "./redisHelper.js";
 import { addMinutes, compareDesc, differenceInDays, eachMonthOfInterval, endOfMonth, endOfYear, formatDate, getDate, getDaysInMonth, getYear, interval, isSameDay, isSameMonth, isSameYear, max, startOfMonth, startOfYear, subWeeks, subYears } from "date-fns";
 import { commentCountKey, postCountKey, postVotesKey, userCommentCountKey, userPostCountKey } from "./redisHelper.js";
@@ -9,7 +9,8 @@ import markdownEscape from "markdown-escape";
 import pluralize from "pluralize";
 import { flatten, sum, uniq } from "lodash";
 import json2md from "json2md";
-import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { hasTriggerBeenHandled, updateWikiPageMulti } from "@fsvreddit/fsv-devvit-helpers";
+import { WikiPagePermissionLevel } from "./types.js";
 
 export async function updateWikiPageAtEndOfDay (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
     const jobGuid = event.data?.jobGuid as string | undefined;
@@ -58,13 +59,6 @@ async function createYearWikiPage (date: Date, context: JobContext) {
         console.log("Added a month", content.length);
     }
 
-    let existingPage: WikiPage | undefined;
-    try {
-        existingPage = await context.reddit.getWikiPage(subreddit.name, wikiPageName);
-    } catch {
-        //
-    }
-
     const wikiContent = json2md(content);
     const wikiSaveOptions = {
         subredditName: subreddit.name,
@@ -72,13 +66,7 @@ async function createYearWikiPage (date: Date, context: JobContext) {
         content: wikiContent,
     };
 
-    if (existingPage) {
-        if (existingPage.content !== wikiContent) {
-            await context.reddit.updateWikiPage(wikiSaveOptions);
-        }
-    } else {
-        await context.reddit.createWikiPage(wikiSaveOptions);
-    }
+    await updateWikiPageMulti(wikiSaveOptions, context);
 
     console.log("Stats updated.");
 
@@ -482,13 +470,6 @@ export async function createSummaryWikiPage (context: JobContext) {
         content.push({ p: "Subscriber count history will be shown here once the app has been installed for two full days." });
     }
 
-    let existingPage: WikiPage | undefined;
-    try {
-        existingPage = await context.reddit.getWikiPage(subreddit.name, summaryPage);
-    } catch {
-        //
-    }
-
     const newWikiContent = json2md(content);
     const wikiSaveOptions = {
         subredditName: subreddit.name,
@@ -496,13 +477,7 @@ export async function createSummaryWikiPage (context: JobContext) {
         content: newWikiContent,
     };
 
-    if (existingPage) {
-        if (existingPage.content !== newWikiContent) {
-            await context.reddit.updateWikiPage(wikiSaveOptions);
-        }
-    } else {
-        await context.reddit.createWikiPage(wikiSaveOptions);
-    }
+    await updateWikiPageMulti(wikiSaveOptions, context);
 
     console.log("Summary Stats updated.");
 

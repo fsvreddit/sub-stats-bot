@@ -8,6 +8,7 @@ import { scheduleAdhocCleanup } from "./cleanup.js";
 import { storeSubscriberCount } from "./subscriberCount.js";
 import json2md from "json2md";
 import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { T5ID } from "@devvit/public-api/types/tid.js";
 
 export async function handleAppInstallEvents (_: AppInstall, context: TriggerContext) {
     console.log("Initial install! Recording install date.");
@@ -126,7 +127,7 @@ async function sendWelcomeModmail (context: TriggerContext) {
     ];
 
     await context.reddit.modMail.createModInboxConversation({
-        subredditId: context.subredditId,
+        subredditId: context.subredditId as T5ID,
         subject: "Welcome to the Subreddit Statistics Dev Platform App",
         bodyMarkdown: json2md(message),
     });
