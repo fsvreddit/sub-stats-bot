@@ -1,16 +1,16 @@
-import { TriggerContext } from "@devvit/public-api";
+import { reddit, redis } from "@devvit/web/server";
 
-export async function userIsMod (username: string, subreddit: string, context: TriggerContext): Promise<boolean> {
+export async function userIsMod (username: string, subreddit: string): Promise<boolean> {
     const redisKey = `cachedModList`;
-    const cachedModList = await context.redis.get(redisKey);
+    const cachedModList = await redis.get(redisKey);
     if (cachedModList) {
         const modList = JSON.parse(cachedModList) as string[];
         return (modList.includes(username));
     }
 
-    const moderators = await context.reddit.getModerators({ subredditName: subreddit }).all();
+    const moderators = await reddit.getModerators({ subredditName: subreddit }).all();
 
-    await context.redis.set(redisKey, JSON.stringify(moderators.map(mod => mod.username)));
+    await redis.set(redisKey, JSON.stringify(moderators.map(mod => mod.username)));
     return moderators.some(mod => mod.username === username);
 }
 

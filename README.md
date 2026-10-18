@@ -26,6 +26,10 @@ Subreddit Statistics is open source. The code is available on GitHub [here](http
 
 ## Version History
 
+### v1.3.2
+
+* Update app to use the Devvit Web framework, no user facing changes
+
 ### v1.3.0
 
 * Add support for subreddits with the New Wiki experience enabled

@@ -1,0 +1,106 @@
+{
+    "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+    "name": "sub-stats-bot",
+    "permissions": {
+        "reddit": true
+    },
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite build --watch"
+    },
+    "server": {
+        "dir": "dist/server",
+        "entry": "index.cjs"
+    },
+    "settings": {
+        "subreddit": {
+            "group_DataCaptureOptions": {
+                "type": "group",
+                "label": "Data Capture Options",
+                "fields": {
+                    "ignoreAutomod": {
+                        "type": "boolean",
+                        "label": "Ignore u/AutoModerator",
+                        "helpText": "If ticked, post/comment statistics won't be captured for AutoModerator",
+                        "defaultValue": true
+                    },
+                    "ignoreModTeamUser": {
+                        "type": "boolean",
+                        "label": "Ignore Mod Team User",
+                        "helpText": "If ticked, post/comment statistics won't be captured for the subreddit's -ModTeam user",
+                        "defaultValue": true
+                    },
+                    "ignoreAllModerators": {
+                        "type": "boolean",
+                        "label": "Ignore All Moderators",
+                        "helpText": "If ticked, post/comment statistics won't be captured for any sub moderator",
+                        "defaultValue": false
+                    },
+                    "userIgnoreList": {
+                        "type": "string",
+                        "label": "List of other users to ignore",
+                        "helpText": "Comma separated, not case sensitive. Specify a list of usernames to ignore when capturing statistics"
+                    }
+                }
+            },
+            "group_WikiPageSettings": {
+                "type": "group",
+                "label": "Wiki Page Settings",
+                "fields": {
+                    "restrictToMods": {
+                        "type": "boolean",
+                        "label": "Restrict wiki pages to mods only",
+                        "helpText": "Permissions for existing wiki pages will be updated if you change this setting",
+                        "defaultValue": true,
+                        "validationEndpoint": "/internal/validators/wiki-permissions"
+                    },
+                    "addUserTags": {
+                        "type": "boolean",
+                        "label": "Add /u/ tags for usernames on wiki pages",
+                        "defaultValue": false
+                    }
+                }
+            }
+        }
+    },
+    "scheduler": {
+        "tasks": {
+            "calculatePostVotes": {
+                "endpoint": "/internal/tasks/calculate-post-votes"
+            },
+            "cleanupDeletedAccounts": {
+                "endpoint": "/internal/tasks/cleanup-deleted-accounts"
+            },
+            "cleanupFilteredStore": {
+                "endpoint": "/internal/tasks/cleanup-filtered-store"
+            },
+            "cleanupTopAccounts": {
+                "endpoint": "/internal/tasks/cleanup-top-accounts"
+            },
+            "initialInstallTasks": {
+                "endpoint": "/internal/tasks/initial-install-tasks"
+            },
+            "storeSubscriberCount": {
+                "endpoint": "/internal/tasks/store-subscriber-count"
+            },
+            "updateWikiPageAtEndOfDay": {
+                "endpoint": "/internal/tasks/update-wiki-page-at-end-of-day"
+            },
+            "updateWikiPageAtEndOfYear": {
+                "endpoint": "/internal/tasks/update-wiki-page-at-end-of-year"
+            },
+            "updateWikiPagePermissions": {
+                "endpoint": "/internal/tasks/update-wiki-page-permissions"
+            }
+        }
+    },
+    "triggers": {
+        "onAppInstall": "/internal/triggers/app-install",
+        "onAppUpgrade": "/internal/triggers/app-upgrade",
+        "onCommentCreate": "/internal/triggers/comment-create",
+        "onCommentDelete": "/internal/triggers/comment-delete",
+        "onModAction": "/internal/triggers/mod-action",
+        "onPostCreate": "/internal/triggers/post-create",
+        "onPostDelete": "/internal/triggers/post-delete"
+    }
+}

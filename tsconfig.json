@@ -1,7 +1,7 @@
 {
-    "extends": "@devvit/public-api/devvit.tsconfig.json",
-    "compilerOptions": {
-        "allowJs": false,
-        "checkJs": false
-    }
+  "files": [],
+  "references": [
+    { "path": "./tools/tsconfig.server.json" },
+    { "path": "./tools/tsconfig.vite.json" }
+  ]
 }

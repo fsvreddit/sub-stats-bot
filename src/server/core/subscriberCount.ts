@@ -1,12 +1,5 @@
-import { JobContext, ScheduledJobEvent, Subreddit, ZMember } from "@devvit/public-api";
-import { SUBS_KEY } from "./redisHelper.js";
+import { Subreddit, ZMember } from "@devvit/web/server";
 import { addDays, differenceInDays, formatDate, formatDistance, getDate, isMonday, subDays } from "date-fns";
-
-export async function storeSubscriberCount (_: ScheduledJobEvent<undefined> | undefined, context: JobContext) {
-    const subreddit = await context.reddit.getCurrentSubreddit();
-    await context.redis.zAdd(SUBS_KEY, { member: formatDate(new Date(), `yyyy-MM-dd`), score: subreddit.numberOfSubscribers });
-    console.log(`Subscriber count stored. Value: ${subreddit.numberOfSubscribers}`);
-}
 
 export interface SubscriberMilestone {
     date: string;
@@ -98,6 +91,10 @@ export function estimatedNextMilestone (subreddit: Subreddit, subscriberCounts: 
     // Find the subscriber count for two weeks ago, or the oldest
     // one that exists if we have less than two weeks worth of data
     const baseline = subscriberCounts.find(item => item.member === formatDate(subDays(new Date(), 14), "yyyy-MM-dd")) ?? subscriberCounts[0];
+
+    if (!baseline) {
+        return;
+    }
 
     const differenceInSubs = subreddit.numberOfSubscribers - baseline.score;
     if (differenceInSubs <= 0) {

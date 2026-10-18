@@ -1,4 +1,4 @@
-import { ZMember } from "@devvit/public-api";
+import { ZMember } from "@devvit/web/server";
 import { formatDate } from "date-fns";
 
 export const APP_INSTALL_DATE = "appInstallDate";
